@@ -6,18 +6,16 @@
 int main(int argc, char **argv)
 {
     camera_t cam;
+    vec3f_t eye, center, up;
+
     camera_init(&cam);
+    
+    vec3f_init(eye, 0.0f);
+    vec3f_init(center, 1.0f);
+    vec3f_init(up, 0.0f);
+    up[1] = 1.0f; 
 
-    vec3f_t eye, dir, lookAt;
-    vec3f_init(eye);
-    vec3f_init(dir);
-    vec3f_init(lookAt);
-
-    dir[2] = 1.0f; 
-
-    vec3f_set(lookAt, 1.0f);
-
-    camera_look_at(&cam, eye, dir, lookAt);
+    camera_look_at(&cam, eye, center, up);
 
     camera_print(&cam);
 
