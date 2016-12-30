@@ -14,7 +14,7 @@ DEP_DIR = .dep
 
 CFLAGS  += -g -Wall -std=c11 -I$(SRC_DIR)
 LDFLAGS +=
-LDLIBS  += -lm -lGL 
+LDLIBS  += -lm -lGL -lGLEW -lglut
 
 ifdef GLMM_DIR
 
