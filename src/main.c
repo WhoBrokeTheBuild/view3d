@@ -4,8 +4,8 @@
 #include <glmm/glmm.h>
 #include <stdio.h>
 
-#include <debug.h>
 #include <camera.h>
+#include <debug.h>
 #include <shaders.h>
 
 #define WIDTH 1024
@@ -13,6 +13,11 @@
 
 GLuint g_program;
 GLuint g_vao;
+
+camera_t g_cam;
+mat4x4_t g_model;
+
+GLint g_mvp_loc;
 
 void update()
 {
@@ -24,7 +29,18 @@ void render()
 
     LOG_INFO("Rendering");
 
+    camera_update(&g_cam);
+
+    mat4x4_t mvp;
+    mat4x4_mul(mvp, g_cam.proj, g_cam.view);
+    mat4x4_mul(mvp, mvp, g_model);
+
+    printf("MVP: \n");
+    mat4x4_print(mvp);
+    printf("\n");
+    
     glUseProgram(g_program);
+    glUniformMatrix4fv(g_mvp_loc, 1, GL_FALSE, (GLfloat *)mvp);
     glBindVertexArray(g_vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -59,28 +75,31 @@ int main(int argc, char **argv)
 
     glutDisplayFunc(&render);
 
-    /*
-    camera_t cam;
-    vec3f_t eye, center, up;
-    camera_init(&cam, WIDTH, HEIGHT, 0.1f, 1000.0f, 45.0f);
-    vec3f_init(eye, 0.0f);
-    vec3f_init(center, 1.0f);
-    vec3f_init(up, 0.0f);
-    up[1] = 1.0f;
-    camera_look_at(&cam, eye, center, up);
-    camera_print(&cam);
-    */
+    camera_init(&g_cam, WIDTH, HEIGHT, 0.1f, 1000.0f, GLMM_RAD(45.0f));
+
+    vec3f_t eye = { 4.0f, 3.0f, 3.0f };
+    vec3f_t center = { 0.0f, 0.0f, 0.0f };
+    vec3f_t up = { 0.0f, 1.0f, 0.0f };
+    camera_look_at(&g_cam, eye, center, up);
+
+    camera_update(&g_cam);
+    camera_print(&g_cam);
+    printf("Model:\n");
+
+    mat4x4_init(g_model, 1.0f);
+    mat4x4_print(g_model); 
+    printf("\n");
 
     float points[] = {
-         0.0f,  0.5f,  0.0f,
-         0.5f, -0.5f,  0.0f,
-        -0.5f, -0.5f,  0.0f
+       -1.0f, -1.0f, 0.0f,
+       1.0f, -1.0f, 0.0f,
+       0.0f,  1.0f, 0.0f,
     };
 
     GLuint vbo = 0;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), points, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
 
     glGenVertexArrays(1, &g_vao);
     glBindVertexArray(g_vao);
@@ -95,6 +114,8 @@ int main(int argc, char **argv)
     };
 
     g_program = shader_program_load(shaders);
+
+    g_mvp_loc = glGetUniformLocation(g_program, "mat_mvp");
 
     glutMainLoop();
 

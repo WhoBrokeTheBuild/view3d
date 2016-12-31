@@ -1,14 +1,15 @@
 #include "camera.h"
+#include <debug.h>
 #include <math.h>
 
 void camera_init(camera_t *this, float width, float height, float near, float far, float fov)
 {
-    mat4x4_init(this->proj);
-    mat4x4_init(this->view);
+    mat4x4_init(this->proj, 1.0f);
+    mat4x4_init(this->view, 1.0f);
 
     this->_invalid_proj = true;
     this->_invalid_view = true;
-    this->_aspect = height / width;
+    this->_aspect = width / height;
     this->_near = near;
     this->_far = far;
     this->_fov = fov;
@@ -32,34 +33,28 @@ void camera_print(camera_t *this)
 
 void camera_look_at(camera_t *this, const vec3f_t eye, const vec3f_t center, const vec3f_t up)
 {
-    look_at(this->view, eye, center, up);
+    glmm_look_at(this->view, eye, center, up);
 }
 
 void camera_update(camera_t *this)
 {
-    static float D2R = GLMM_PI / 180.0f;
-
     if (this->_invalid_proj)
     {
-        float y_scale = 1.0f / tanf(D2R * this->_fov / 2.0f);
-        float x_scale = y_scale / this->_aspect;
-        mat4x4_t tmp = {
-            { x_scale, 0.0f, 0.0f, 0.0f },
-            { 0.0f, y_scale, 0.0f, 0.0f },
-            { 0.0f, 0.0f, (this->_far + this->_near) / (this->_near - this->_far), -1.0f },
-            { 0.0f, 0.0f, 2.0f * this->_far * this->_near / (this->_near - this->_far) }
-        };
-        mat4x4_copy(this->proj, tmp);
+        LOG_INFO("Recalculating Projection Matrix");
+        glmm_perspective(this->proj, this->_aspect, this->_near, this->_far, this->_fov);
+        this->_invalid_proj = false;
     }
 
     if (this->_invalid_view)
     {
+        LOG_INFO("Recalculating View Matrix");
+        this->_invalid_view = false;
     }
 }
 
 void camera_set_aspect(camera_t *this, float width, float height)
 {
-    this->_aspect = height / width;
+    this->_aspect = width / height;
     this->_invalid_proj = true;
 }
 
