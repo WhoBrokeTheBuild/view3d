@@ -9,9 +9,6 @@
 #include <debug.h>
 #include <shaders.h>
 
-#define WIDTH 1024
-#define HEIGHT 768
-
 GLuint g_program;
 GLuint g_vao;
 
@@ -20,35 +17,36 @@ mat4x4_t g_model;
 
 GLint g_mvp_loc, g_color_loc;
 
-float g_rot = 0.0f;
-vec3f_t g_rot_axis = { 0.0f, 0.0f, 1.0f };
-
-vec3f_t g_color;
-unsigned int g_color_timer = 0;
+float g_rot = 10.0f;
+int g_rot_dir = 0;
+vec3f_t g_rot_axis[] = {
+    { 1.0f, 0.0f, 0.0f },
+    { 0.0f, 1.0f, 0.0f },
+    { 0.0f, 0.0f, 1.0f },
+    { 1.0f, 1.0f, 0.0f },
+    { 0.0f, 1.0f, 1.0f },
+    { 1.0f, 0.0f, 1.0f }
+};
+int g_rot_change_timeout = 0;
 
 void update()
 {
 }
 
-void render()
+void render_cb()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     camera_update(&g_cam);
 
-    mat4x4_init(g_model, 1.0f);
-    mat4x4_rotate(g_model, g_rot, g_rot_axis);
-
-    if (g_color_timer <= 0)
+    if (g_rot_change_timeout <= 0)
     {
-        g_color[0] = (float)(rand() % 255) / 255.0f;
-        g_color[1] = (float)(rand() % 255) / 255.0f;
-        g_color[2] = (float)(rand() % 255) / 255.0f;
-        g_color_timer = 5;
+        g_rot_dir = rand() % 6;
+        g_rot_change_timeout = 100;
     }
-    --g_color_timer;
+    --g_rot_change_timeout;
 
-    g_rot += 0.1f;
+    mat4x4_rotate(g_model, GLMM_RAD(1.0f), g_rot_axis[g_rot_dir]);
 
     mat4x4_t mvp;
     mat4x4_mul(mvp, g_cam.proj, g_cam.view);
@@ -56,45 +54,77 @@ void render()
 
     glUseProgram(g_program);
     glUniformMatrix4fv(g_mvp_loc, 1, GL_FALSE, (GLfloat *)mvp);
-    glUniform3fv(g_color_loc, 1, (GLfloat *)g_color);
     glBindVertexArray(g_vao);
-    glDrawArrays(GL_TRIANGLES, 0, 24);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
 
     glutSwapBuffers();
 }
 
-int main(int argc, char **argv)
+void resize_cb(GLint width, GLint height)
 {
-    srand(time(0));
+    camera_set_aspect(&g_cam, width, height);
+}
 
+void print_versions()
+{
+    int glut_ver = glutGet(GLUT_VERSION);
+    int glut_pat = glut_ver % 100;
+    int glut_min = ((glut_ver - glut_pat) % 10000) / 100;
+    int glut_maj = glut_ver / 10000;
+
+    printf("Running GLMM Version: %s\n", GLMM_VER_STRING);
+    printf("Running OpenGL Version: %s\n", glGetString(GL_VERSION));
+    printf("Running (Free)GLUT Version: %d.%d.%d\n", glut_maj, glut_min, glut_pat);
+    printf("Running GLEW Version: %d.%d.%d\n", GLEW_VERSION_MAJOR, GLEW_VERSION_MINOR, GLEW_VERSION_MICRO);
+}
+
+bool window_init(int argc, char** argv, int width, int height)
+{
     glutInit(&argc, argv);
     glutInitContextVersion(3, 3);
     glutInitContextFlags(GLUT_FORWARD_COMPATIBLE | GLUT_DEBUG);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
-    glutInitWindowSize(WIDTH, HEIGHT);
+    glutInitWindowSize(width, height);
     glutCreateWindow("View3D");
 
     glewExperimental = GL_TRUE;
     GLenum err = glewInit();
     if (err != GLEW_OK)
     {
-        fprintf(stderr, "%s\n", glewGetErrorString(err));
+        LOG_ERR("%s\n", glewGetErrorString(err));
         goto error;
     }
 
-    int glut_ver = glutGet(GLUT_VERSION);
-    int glut_pat = glut_ver % 100;
-    int glut_min = ((glut_ver - glut_pat) % 10000) / 100;
-    int glut_maj = glut_ver / 10000;
+    print_versions();
 
-    printf("Running OpenGL Version: %s\n", glGetString(GL_VERSION));
-    printf("Running (Free)GLUT Version: %d.%d.%d\n", glut_maj, glut_min, glut_pat);
-    printf("Running GLEW Version: %d.%d.%d\n", GLEW_VERSION_MAJOR, GLEW_VERSION_MINOR, GLEW_VERSION_MICRO);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    glutDisplayFunc(&render);
-    glutIdleFunc(&render);
+    glutDisplayFunc(&render_cb);
+    glutIdleFunc(&render_cb);
+    glutReshapeFunc(&resize_cb);
 
-    camera_init(&g_cam, WIDTH, HEIGHT, 0.1f, 1000.0f, GLMM_RAD(45.0f));
+    return true;
+
+error:
+
+    return false;
+}
+
+int main(int argc, char **argv)
+{
+    srand(time(0));
+
+    const int START_WIDTH = 1024, START_HEIGHT = 768;
+
+    if (!window_init(argc, argv, START_WIDTH, START_HEIGHT))
+    {
+        LOG_ERR("Window initialization failed");
+        goto error;
+    }
+
+    camera_init(&g_cam, START_WIDTH, START_HEIGHT, 0.01f, 10.0f, GLMM_RAD(45.0f));
 
     vec3f_t eye = { 4.0f, 3.0f, 3.0f };
     vec3f_t center = { 0.0f, 0.0f, 0.0f };
@@ -103,6 +133,8 @@ int main(int argc, char **argv)
 
     camera_update(&g_cam);
     camera_print(&g_cam);
+
+    mat4x4_init(g_model, 1.0f);
 
     float points[] = {
 		-1.0f,-1.0f,-1.0f,
@@ -142,6 +174,8 @@ int main(int argc, char **argv)
 		-1.0f, 1.0f, 1.0f,
 		1.0f,-1.0f, 1.0f
     };
+
+    float colors;
 
     GLuint vbo = 0;
     glGenBuffers(1, &vbo);

@@ -38,18 +38,19 @@ void camera_look_at(camera_t *this, const vec3f_t eye, const vec3f_t center, con
 
 void camera_update(camera_t *this)
 {
+    if (this->_invalid_view || this->_invalid_proj)
+    {
+        //LOG_INFO("Recalculating View Matrix");
+        this->_invalid_view = false;
+    }
+
     if (this->_invalid_proj)
     {
-        LOG_INFO("Recalculating Projection Matrix");
+        //LOG_INFO("Recalculating Projection Matrix");
         glmm_perspective(this->proj, this->_aspect, this->_near, this->_far, this->_fov);
         this->_invalid_proj = false;
     }
 
-    if (this->_invalid_view)
-    {
-        LOG_INFO("Recalculating View Matrix");
-        this->_invalid_view = false;
-    }
 }
 
 void camera_set_aspect(camera_t *this, float width, float height)
