@@ -33,6 +33,9 @@ void render_cb()
 
     camera_update(&g_cam);
 
+    vec3f_t axis = { 0.0f, 1.0f, 0.0f };
+    mat4x4_rotate(g_model_mat, GLMM_RAD(1.0f), axis);
+
     mat4x4_mul(g_render_data.mvp, g_cam.proj, g_cam.view);
     mat4x4_mul(g_render_data.mvp, g_render_data.mvp, g_model_mat);
 
@@ -80,7 +83,7 @@ bool window_init(int argc, char **argv, int width, int height)
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     glutDisplayFunc(&render_cb);
     glutIdleFunc(&render_cb);
@@ -109,7 +112,7 @@ int main(int argc, char **argv)
     camera_init(&g_cam, START_WIDTH, START_HEIGHT, 0.01f, 100.0f, GLMM_RAD(45.0f));
 
     vec3f_t eye = { 10.0f, 10.0f, 10.0f };
-    vec3f_t center = { 0.0f, 0.0f, 0.0f };
+    vec3f_t center = { 0.0f, 5.0f, 0.0f };
     vec3f_t up = { 0.0f, 1.0f, 0.0f };
     camera_look_at(&g_cam, eye, center, up);
 
