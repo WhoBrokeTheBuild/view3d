@@ -33,9 +33,6 @@ void render_cb()
 
     camera_update(&g_cam);
 
-    vec3f_t axis = { 1.0f, 0.0f, 0.0f };
-    mat4x4_rotate(g_model_mat, GLMM_RAD(1.0f), axis);
-
     mat4x4_mul(g_render_data.mvp, g_cam.proj, g_cam.view);
     mat4x4_mul(g_render_data.mvp, g_render_data.mvp, g_model_mat);
 
@@ -83,7 +80,7 @@ bool window_init(int argc, char **argv, int width, int height)
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     glutDisplayFunc(&render_cb);
     glutIdleFunc(&render_cb);
@@ -109,9 +106,9 @@ int main(int argc, char **argv)
         goto error;
     }
 
-    camera_init(&g_cam, START_WIDTH, START_HEIGHT, 0.01f, 10.0f, GLMM_RAD(45.0f));
+    camera_init(&g_cam, START_WIDTH, START_HEIGHT, 0.01f, 100.0f, GLMM_RAD(45.0f));
 
-    vec3f_t eye = { 4.0f, 3.0f, 3.0f };
+    vec3f_t eye = { 10.0f, 10.0f, 10.0f };
     vec3f_t center = { 0.0f, 0.0f, 0.0f };
     vec3f_t up = { 0.0f, 1.0f, 0.0f };
     camera_look_at(&g_cam, eye, center, up);
@@ -136,7 +133,14 @@ int main(int argc, char **argv)
        &render_data_bind_cb
     };
 
-    model_load_from_file(&g_model, "assets/cube.obj", NULL, test, &data);
+    const char* cube = "assets/cube.obj";
+    char* filename = cube;
+    if (argc > 1)
+    {
+        filename = argv[1];
+    }
+
+    model_load_from_file(&g_model, filename, NULL, test, &data);
 
     glutMainLoop();
 

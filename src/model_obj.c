@@ -73,17 +73,25 @@ bool raw_model_load_from_obj(raw_model_t* this, const char* filename, const char
         }
         else if (line[0] == 'f')
         {
+            vec3i_init(face[0], 0);
+            vec3i_init(face[1], 0);
+            vec3i_init(face[2], 0);
             pch = strstr(line, "//");
             if (pch)
             {
-                face[0][1] = 0;
-                face[1][1] = 0;
-                face[2][1] = 0;
-                sscanf(line, "%*s %d//%d %d//%d %d//%d", &face[0][0], &face[0][2], &face[1][0], &face[1][2], &face[2][0], &face[2][0]);
+                sscanf(line, "%*s %d//%d %d//%d %d//%d", &face[0][0], &face[0][2], &face[1][0], &face[1][2], &face[2][0], &face[2][2]);
             }
             else 
             {
-                sscanf(line, "%*s %d/%d/%d %d/%d/%d %d/%d/%d", &face[0][0], &face[0][1], &face[0][2], &face[1][0], &face[1][1], &face[1][2], &face[2][0], &face[2][1], &face[2][2]);
+                pch = strchr(line, '/');
+                if (pch)
+                {
+                    sscanf(line, "%*s %d/%d/%d %d/%d/%d %d/%d/%d", &face[0][0], &face[0][1], &face[0][2], &face[1][0], &face[1][1], &face[1][2], &face[2][0], &face[2][1], &face[2][2]);
+                }
+                else
+                {
+                    sscanf(line, "%*s %d %d %d", &face[0][0], &face[1][0], &face[2][0]);
+                }
             }
 
             for (i = 0; i < 3; ++i)
@@ -101,9 +109,9 @@ bool raw_model_load_from_obj(raw_model_t* this, const char* filename, const char
                     face[i][2] += norm_index;
                 }
 
-                vec3f_copy(mesh->verts + (mesh->count * 3), all_verts + (face[i][0] * 3));
-                vec3f_copy(mesh->norms + (mesh->count * 3), all_norms + (face[i][2] * 3));
-                vec2f_copy(mesh->txcds + (mesh->count * 2), all_txcds + (face[i][1] * 2));
+                vec3f_copy(mesh->verts + (mesh->count * 3), all_verts + ((face[i][0] - 1) * 3));
+                vec3f_copy(mesh->norms + (mesh->count * 3), all_norms + ((face[i][2] - 1) * 3));
+                vec2f_copy(mesh->txcds + (mesh->count * 2), all_txcds + ((face[i][1] - 1) * 2));
 
                 ++mesh->count;
             }

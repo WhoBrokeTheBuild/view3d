@@ -73,7 +73,7 @@ bool mesh_load_from_raw(mesh_t* this, raw_mesh_t* raw)
     GLuint vbo = 0;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, raw->count * 3, raw->verts, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * raw->count * 3, raw->verts, GL_STATIC_DRAW);
 
     glGenVertexArrays(1, &this->vao);
     glBindVertexArray(this->vao);
