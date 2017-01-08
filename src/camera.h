@@ -1,7 +1,7 @@
 #ifndef VIEW3D_CAMERA_H
 #define VIEW3D_CAMERA_H
 
-#include <glmm/glmm.h>
+#include <view3d.h>
 #include <stdbool.h>
 
 typedef struct 
@@ -27,9 +27,9 @@ void camera_print(camera_t* this);
 void camera_look_at(camera_t* this, const vec3f_t eye, const vec3f_t center, const vec3f_t up);
 
 // TODO
-void camera_rotate();
-void camera_translate();
-void camera_scale();
+void camera_rotate(camera_t* this, float angle, const vec3f_t axis);
+void camera_translate(camera_t* this, const vec3f_t vec);
+void camera_scale(camera_t* this, const vec3f_t scale);
 
 void camera_update(camera_t* this);
 

@@ -3,6 +3,11 @@
 #include <debug.h>
 #include <util.h>
 
+void shader_data_bind(shader_data_t* this)
+{
+    this->bind_cb(this->data);
+}
+
 bool shader_program_print_log(GLuint program)
 {
     char *program_log = NULL;

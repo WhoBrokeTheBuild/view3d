@@ -18,6 +18,14 @@ typedef struct
 
 } shader_info_t;
 
+typedef struct
+{
+    void* data;
+    void(*bind_cb)(void*);
+} shader_data_t;
+
+void shader_data_bind(shader_data_t* this);
+
 bool shader_program_print_log(GLuint program);
 bool shader_print_log(GLuint shader);
 
