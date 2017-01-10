@@ -1,7 +1,23 @@
 #include "model.h"
+#include <model_blend.h>
+#include <model_fbx.h>
 #include <model_obj.h>
 
-void raw_mesh_init(raw_mesh_t* this)
+typedef struct
+{
+    const char *ext;
+    bool (*func)(raw_model_t *, const char *, const char *);
+
+} model_loader_t;
+
+model_loader_t g_model_loaders[] = {
+    { ".obj", &raw_model_load_from_obj },
+    { ".fbx", &raw_model_load_from_fbx },
+    { ".blend", &raw_model_load_from_blend },
+    { NULL, NULL }
+};
+
+void raw_mesh_init(raw_mesh_t *this)
 {
     this->name = NULL;
     this->count = 0;
@@ -12,7 +28,7 @@ void raw_mesh_init(raw_mesh_t* this)
     this->diff_map = NULL;
 }
 
-void raw_mesh_term(raw_mesh_t* this)
+void raw_mesh_term(raw_mesh_t *this)
 {
     free(this->name);
     this->name = NULL;
@@ -29,13 +45,13 @@ void raw_mesh_term(raw_mesh_t* this)
     raw_mesh_init(this);
 }
 
-void raw_model_init(raw_model_t* this)
+void raw_model_init(raw_model_t *this)
 {
     this->count = 0;
     this->meshes = NULL;
 }
 
-void raw_model_term(raw_model_t* this)
+void raw_model_term(raw_model_t *this)
 {
     int i;
     for (i = 0; i < this->count; ++i)
@@ -47,26 +63,43 @@ void raw_model_term(raw_model_t* this)
     this->count = 0;
 }
 
-bool raw_model_load_from_file(raw_model_t* this, const char* filename, const char* name)
+bool raw_model_load_from_file(raw_model_t *this, const char *filename, const char *name)
 {
-    // Assume OBJ for now
-    return raw_model_load_from_obj(this, filename, name);
+    int i = 0;
+    char *pch = NULL;
+
+    pch = strrchr(filename, '.');
+    CHECK(pch, "No file extension found for '%s'", filename);
+
+    for (i = 0; g_model_loaders[i].ext; ++i)
+    {
+        if (strcmp(pch, g_model_loaders[i].ext) == 0)
+        {
+            return (*g_model_loaders[i].func)(this, filename, name);
+        }
+    }
+
+    LOG_ERR("Unable to find model loader for '%s'", filename);
+
+error:
+
+    return false;
 }
 
-void mesh_init(mesh_t* this)
+void mesh_init(mesh_t *this)
 {
     this->count = 0;
     this->vao = 0;
 }
 
-void mesh_term(mesh_t* this)
+void mesh_term(mesh_t *this)
 {
     this->count = 0;
     glDeleteVertexArrays(1, &this->vao);
     this->vao = 0;
 }
 
-bool mesh_load_from_raw(mesh_t* this, raw_mesh_t* raw)
+bool mesh_load_from_raw(mesh_t *this, raw_mesh_t *raw)
 {
     this->count = raw->count;
 
@@ -84,7 +117,7 @@ bool mesh_load_from_raw(mesh_t* this, raw_mesh_t* raw)
     return true;
 }
 
-void model_init(model_t* this)
+void model_init(model_t *this)
 {
     this->count = 0;
     this->meshes = NULL;
@@ -92,7 +125,7 @@ void model_init(model_t* this)
     this->_shader_data = NULL;
 }
 
-void model_term(model_t* this)
+void model_term(model_t *this)
 {
     int i;
     for (i = 0; i < this->count; ++i)
@@ -105,7 +138,7 @@ void model_term(model_t* this)
     this->_shader_id = 0;
 }
 
-bool model_load_from_file(model_t* this, const char* filename, const char* name, GLuint shader_id, shader_data_t* shader_data)
+bool model_load_from_file(model_t *this, const char *filename, const char *name, GLuint shader_id, shader_data_t *shader_data)
 {
     bool ret;
     raw_model_t raw;
@@ -119,31 +152,38 @@ bool model_load_from_file(model_t* this, const char* filename, const char* name,
     return ret;
 }
 
-bool model_load_from_raw(model_t* this, raw_model_t* raw, GLuint shader_id, shader_data_t* shader_data)
+bool model_load_from_raw(model_t *this, raw_model_t *raw, GLuint shader_id, shader_data_t *shader_data)
 {
     int i;
 
     this->_shader_id = shader_id;
-    this->_shader_data = malloc(sizeof(shader_data_t));
-    memcpy(this->_shader_data, shader_data, sizeof(shader_data_t));
+    if (shader_data)
+    {
+        this->_shader_data = malloc(sizeof(shader_data_t));
+        memcpy(this->_shader_data, shader_data, sizeof(shader_data_t));
+    }
 
     this->count = raw->count;
     this->meshes = malloc(sizeof(mesh_t) * raw->count);
     for (i = 0; i < raw->count; ++i)
     {
         mesh_init(&this->meshes[i]);
-        mesh_load_from_raw(&this->meshes[i], &raw->meshes[i]);
+        CHECK(mesh_load_from_raw(&this->meshes[i], &raw->meshes[i]), "Failed to load mesh");
     }
 
-    return false;    
+    return true;
+
+error:
+
+    return false;
 }
 
-void model_draw(model_t* this)
+void model_draw(model_t *this)
 {
     int i;
-    
+
     glUseProgram(this->_shader_id);
-    
+
     if (this->_shader_data)
     {
         shader_data_bind(this->_shader_data);

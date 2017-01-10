@@ -1,12 +1,12 @@
-#include <view3d.h>
 #include <stdio.h>
 #include <time.h>
+#include <view3d.h>
 
 #include <camera.h>
-#include <shaders.h>
 #include <model.h>
+#include <shaders.h>
 
-typedef struct 
+typedef struct
 {
     GLuint mvp_loc;
     mat4x4_t mvp;
@@ -17,9 +17,9 @@ model_t g_model;
 render_data_t g_render_data;
 mat4x4_t g_model_mat;
 
-void render_data_bind_cb(void* in_data)
+void render_data_bind_cb(void *in_data)
 {
-    render_data_t* data = (render_data_t*)in_data;
+    render_data_t *data = (render_data_t *)in_data;
     glUniformMatrix4fv(data->mvp_loc, 1, GL_FALSE, (GLfloat *)data->mvp);
 }
 
@@ -98,6 +98,17 @@ error:
 
 int main(int argc, char **argv)
 {
+    if (argc <= 1)
+    {
+        printf("USAGE v3d [FILENAME]\n");
+        return 0;
+    }
+
+    bool ret = model_load_from_file(&g_model, argv[1], NULL, 0, NULL);
+    CHECK(ret, "Failed to load model");
+
+    return 0;
+
     srand(time(0));
 
     const int START_WIDTH = 1024;
@@ -118,7 +129,7 @@ int main(int argc, char **argv)
 
     camera_update(&g_cam);
     camera_print(&g_cam);
-    
+
     mat4x4_init(g_model_mat, 1.0f);
 
     shader_info_t shaders[] = {
@@ -127,23 +138,14 @@ int main(int argc, char **argv)
         { 0, NULL }
     };
 
-	GLuint test = shader_program_load(shaders);
-    
+    GLuint test = shader_program_load(shaders);
+
     g_render_data.mvp_loc = glGetUniformLocation(test, "mat_mvp");
 
     shader_data_t data = {
-       (void*)&g_render_data,
-       &render_data_bind_cb
+        (void *)&g_render_data,
+        &render_data_bind_cb
     };
-
-    const char* cube = "assets/cube.obj";
-    char* filename = cube;
-    if (argc > 1)
-    {
-        filename = argv[1];
-    }
-
-    model_load_from_file(&g_model, filename, NULL, test, &data);
 
     glutMainLoop();
 

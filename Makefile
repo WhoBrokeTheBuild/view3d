@@ -1,5 +1,6 @@
 .PHONY: all clean install format valgrind gdb test check
 
+FILE ?= assets/cube.obj
 PREFIX ?= /usr/local
 
 # Directory constants
@@ -14,7 +15,7 @@ DEP_DIR = .dep
 
 CFLAGS  += -g -Wall -std=c11 -I$(SRC_DIR)
 LDFLAGS +=
-LDLIBS  += -lm -lGL -lGLEW -lglut
+LDLIBS  += -lm -lz -lGL -lGLEW -lglut
 
 ifdef GLMM_DIR
 
@@ -76,17 +77,17 @@ format:
 # Run the program normally
 
 run:
-	$(TARGET)
+	$(TARGET) $(FILE)
 
 # Run the program through valgrind
 
 valgrind:
-	valgrind $(TARGET)
+	valgrind $(TARGET) $(FILE)
 
 # Run the program through gdb
 
 gdb:
-	gdb --args $(TARGET)
+	gdb --args $(TARGET) $(FILE)
 
 # Builds test executables
 

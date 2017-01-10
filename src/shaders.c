@@ -3,7 +3,7 @@
 #include <debug.h>
 #include <util.h>
 
-void shader_data_bind(shader_data_t* this)
+void shader_data_bind(shader_data_t *this)
 {
     this->bind_cb(this->data);
 }
