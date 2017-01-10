@@ -5,9 +5,59 @@
 const size_t FBX_MAX_NODE_NAME_LEN = 512;
 const int FBX_HEADER_SIZE = 27;
 const char *FBX_FILE_ID = "Kaydara FBX Binary  ";
+const char *FBX_IGNORE[] = {
+    "FBXHeaderExtension",
+    "FileId",
+    "CreationTime",
+    "Creator",
+    "GlobalSettings",
+    "Documents",
+    "References",
+    "Definitions",
+    "Connections",
+    "Takes",
+    NULL
+};
+
+bool fbx_inflate_data(char *dst, char *src, size_t dst_len, size_t src_len)
+{
+    int zstatus = Z_OK;
+    z_stream zs;
+
+    memset(&zs, 0, sizeof(zs));
+    zs.avail_in = 0;
+    zs.next_in = Z_NULL;
+    zs.zalloc = Z_NULL;
+    zs.zfree = Z_NULL;
+    zs.opaque = Z_NULL;
+
+    zstatus = inflateInit(&zs);
+    CHECK(zstatus == Z_OK, "Failed to init zlib stream: %s", zs.msg);
+
+    zs.next_in = (Bytef *)src;
+    zs.avail_in = src_len;
+    zs.next_out = (Bytef *)dst;
+    zs.avail_out = dst_len;
+
+    zstatus = inflate(&zs, Z_FINISH);
+    CHECK(zstatus != Z_STREAM_ERROR, "zlib state broken");
+    CHECK(zstatus != Z_DATA_ERROR, "Data is corrupt");
+    CHECK(zstatus != Z_MEM_ERROR, "Out of memory");
+    CHECK(zstatus == Z_STREAM_END, "Failed to inflate data: %s", zs.msg);
+
+    inflateEnd(&zs);
+    return true;
+
+error:
+
+    inflateEnd(&zs);
+    return false;
+}
 
 typedef struct fbx_prop fbx_prop_t;
 typedef struct fbx_node fbx_node_t;
+
+typedef size_t (*fbx_prop_read_func_t)(fbx_prop_t *, char *, size_t, size_t);
 
 void print_depth(int depth)
 {
@@ -22,6 +72,10 @@ typedef struct fbx_prop
     uint32_t length;
     union {
         uint64_t prim;
+        int *array;
+
+        char *S;
+        void *R;
 
         bool C;
         int16_t Y;
@@ -29,9 +83,6 @@ typedef struct fbx_prop
         int64_t L;
         float F;
         double D;
-    };
-    union {
-        int *array;
 
         bool *b;
         unsigned char *c;
@@ -40,23 +91,116 @@ typedef struct fbx_prop
         float *f;
         double *d;
     };
-    union {
-        void *special;
-
-        char *S;
-        void *R;
-    };
 } fbx_prop_t;
+
+typedef struct fbx_prop_handler
+{
+    char type;
+    fbx_prop_read_func_t func;
+
+} fbx_prop_handler_t;
+
+size_t fbx_prop_read_string(fbx_prop_t *this, char *buffer, size_t offset, size_t buffer_len)
+{
+    memcpy(&this->length, buffer + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    this->S = malloc((this->length + 1) * sizeof(char));
+    memcpy(this->S, buffer + offset, this->length);
+    this->S[this->length] = '\0';
+    offset += this->length;
+
+    return offset;
+}
+
+size_t fbx_prop_read_data(fbx_prop_t *this, char *buffer, size_t offset, size_t buffer_len)
+{
+    memcpy(&this->length, buffer + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    this->R = malloc((this->length) * sizeof(char));
+    memcpy(this->R, buffer + offset, this->length);
+    offset += this->length;
+
+    return offset;
+}
+
+#define FBX_PROP_READ_PRIMITIVE(ID, NAME, TYPE)                                                        \
+    size_t fbx_prop_read_prim_##NAME(fbx_prop_t *this, char *buffer, size_t offset, size_t buffer_len) \
+    {                                                                                                  \
+        memcpy(&this->ID, buffer + offset, sizeof(TYPE));                                              \
+        return offset + sizeof(TYPE);                                                                  \
+    }
+
+#define FBX_PROP_READ_ARRAY(ID, NAME, TYPE)                                                                 \
+    size_t fbx_prop_read_arr_##NAME(fbx_prop_t *this, char *buffer, size_t start_offset, size_t buffer_len) \
+    {                                                                                                       \
+        size_t offset = start_offset;                                                                       \
+        uint32_t encoding = 0;                                                                              \
+        uint32_t length = 0;                                                                                \
+                                                                                                            \
+        memcpy(&this->length, buffer + offset, sizeof(uint32_t));                                           \
+        offset += sizeof(uint32_t);                                                                         \
+                                                                                                            \
+        memcpy(&encoding, buffer + offset, sizeof(uint32_t));                                               \
+        offset += sizeof(uint32_t);                                                                         \
+                                                                                                            \
+        memcpy(&length, buffer + offset, sizeof(uint32_t));                                                 \
+        offset += sizeof(uint32_t);                                                                         \
+                                                                                                            \
+        if (this->length == 0)                                                                              \
+        {                                                                                                   \
+            return offset;                                                                                  \
+        }                                                                                                   \
+                                                                                                            \
+        this->ID = malloc(this->length * sizeof(TYPE));                                                     \
+        if (encoding == 1)                                                                                  \
+        {                                                                                                   \
+            fbx_inflate_data((char *)this->ID, buffer + offset, this->length * sizeof(TYPE), length);       \
+        }                                                                                                   \
+        else                                                                                                \
+        {                                                                                                   \
+            memcpy(this->ID, buffer + offset, length);                                                      \
+        }                                                                                                   \
+        offset += length;                                                                                   \
+        return offset;                                                                                      \
+    }
+
+FBX_PROP_READ_PRIMITIVE(C, bool, bool);
+FBX_PROP_READ_PRIMITIVE(Y, int16, int16_t);
+FBX_PROP_READ_PRIMITIVE(I, int32, int32_t);
+FBX_PROP_READ_PRIMITIVE(L, int64, int64_t);
+FBX_PROP_READ_PRIMITIVE(F, float, float);
+FBX_PROP_READ_PRIMITIVE(D, double, double);
+FBX_PROP_READ_ARRAY(b, bool, bool);
+FBX_PROP_READ_ARRAY(c, byte, unsigned char);
+FBX_PROP_READ_ARRAY(i, int32, int32_t);
+FBX_PROP_READ_ARRAY(l, int64, int64_t);
+FBX_PROP_READ_ARRAY(f, float, float);
+FBX_PROP_READ_ARRAY(d, double, double);
+
+fbx_prop_handler_t FBX_PROP_READ_FUNCS[] = {
+    { 'S', &fbx_prop_read_string },
+    { 'R', &fbx_prop_read_data },
+    { 'C', &fbx_prop_read_prim_bool },
+    { 'Y', &fbx_prop_read_prim_int16 },
+    { 'I', &fbx_prop_read_prim_int32 },
+    { 'L', &fbx_prop_read_prim_int64 },
+    { 'F', &fbx_prop_read_prim_float },
+    { 'D', &fbx_prop_read_prim_double },
+    { 'b', &fbx_prop_read_arr_bool },
+    { 'c', &fbx_prop_read_arr_byte },
+    { 'i', &fbx_prop_read_arr_int32 },
+    { 'l', &fbx_prop_read_arr_int64 },
+    { 'f', &fbx_prop_read_arr_float },
+    { 'd', &fbx_prop_read_arr_double },
+    { '\0', NULL }
+};
 
 void fbx_prop_init(fbx_prop_t *this)
 {
     CHECK(this, "this is NULL");
-
-    this->type = '\0';
-    this->length = 0;
-    this->prim = 0;
-    this->array = NULL;
-    this->special = NULL;
+    memset(this, 0, sizeof(fbx_prop_t));
 
 error:;
 }
@@ -64,178 +208,45 @@ error:;
 void fbx_prop_term(fbx_prop_t *this)
 {
     CHECK(this, "this is NULL");
-
-    this->type = '\0';
-    this->length = 0;
-    this->prim = 0;
-    free(this->array);
-    this->array = NULL;
-    free(this->special);
-    this->special = NULL;
+    switch (this->type)
+    {
+    case 'S':
+    case 'R':
+    case 'b':
+    case 'c':
+    case 'i':
+    case 'l':
+    case 'f':
+    case 'd':
+        free(this->array);
+    default:;
+    }
+    memset(this, 0, sizeof(fbx_prop_t));
 
 error:;
 }
 
 size_t fbx_prop_read(fbx_prop_t *this, char *buffer, size_t start_offset, size_t buffer_len)
 {
-    static bool skip = true;
+    int i;
     size_t offset = start_offset;
-    uint32_t encoding = 0;
-    uint32_t length = 0;
-    uint32_t new_length = 0;
-    char *source = NULL;
-    int zstatus = 0;
-    z_stream stream;
 
     CHECK(this, "this is NULL");
 
     memcpy(&this->type, buffer + offset, sizeof(this->type));
     offset += sizeof(this->type);
 
-    if (this->type == 'S' || this->type == 'R')
+    for (i = 0; FBX_PROP_READ_FUNCS[i].type; ++i)
     {
-        memcpy(&this->length, buffer + offset, sizeof(uint32_t));
-        offset += sizeof(uint32_t);
-
-        if (this->length == 0)
+        if (FBX_PROP_READ_FUNCS[i].type == this->type)
         {
-            return offset;
-        }
-
-        if (this->type == 'S')
-        {
-            this->S = malloc((this->length + 1) * sizeof(char));
-            memcpy(this->S, buffer + offset, this->length);
-            this->S[this->length] = '\0';
-            offset += this->length;
-        }
-        else if (this->type == 'R')
-        {
-            this->R = malloc((this->length) * sizeof(char));
-            memcpy(this->R, buffer + offset, this->length);
-            offset += this->length;
+            return (*FBX_PROP_READ_FUNCS[i].func)(this, buffer, offset, buffer_len);
         }
     }
-    else if (this->type == 'b' || this->type == 'c' || this->type == 'i' || this->type == 'l' || this->type == 'f' || this->type == 'd')
-    {
-        memcpy(&this->length, buffer + offset, sizeof(uint32_t));
-        offset += sizeof(uint32_t);
 
-        memcpy(&encoding, buffer + offset, sizeof(uint32_t));
-        offset += sizeof(uint32_t);
-
-        memcpy(&length, buffer + offset, sizeof(uint32_t));
-        offset += sizeof(uint32_t);
-
-        if (this->length == 0)
-        {
-            return offset;
-        }
-
-        if (encoding == 1)
-        {
-            LOG_INFO("Preparing to inflate data");
-
-            memset(&stream, 0, sizeof(stream));
-
-            stream.avail_in = 0;
-            stream.next_in = Z_NULL;
-            stream.zalloc = Z_NULL;
-            stream.zfree = Z_NULL;
-            stream.opaque = Z_NULL;
-
-            zstatus = inflateInit(&stream);
-            CHECK(zstatus == Z_OK, "Failed to init zlib stream %s", stream.msg);
-
-            stream.avail_in = length;
-            stream.next_in = (Bytef *)(buffer + offset);
-
-            new_length = length;
-            do
-            {
-                new_length *= 2;
-                source = realloc(source, new_length);
-                CHECK_MEM(source);
-
-                stream.avail_out = new_length - stream.total_out;
-                stream.next_out = (Bytef *)(source + stream.total_out);
-
-                zstatus = inflate(&stream, Z_NO_FLUSH);
-                CHECK(zstatus != Z_STREAM_ERROR, "zlib state broken");
-                CHECK(zstatus != Z_DATA_ERROR, "Data is corrupt");
-                CHECK(zstatus != Z_MEM_ERROR, "Out of memory");
-            } while (zstatus != Z_STREAM_END);
-
-            LOG_INFO("Decompressed size %d, was %d. %.2f%% inflation", (int)stream.total_out, length, ((float)stream.total_out / (float)length) * 100.0f);
-            length = stream.total_out;
-            source = realloc(source, length);
-            CHECK_MEM(source);
-        }
-        else
-        {
-            source = buffer + offset;
-        }
-
-#define TMP_PROP_ARRAY_READ(C, I, T)         \
-    case C:                                  \
-        if (source)                          \
-        {                                    \
-            this->I = malloc(length);        \
-            memcpy(this->I, source, length); \
-            offset += length;                \
-        }                                    \
-        break;
-
-        switch (this->type)
-        {
-            TMP_PROP_ARRAY_READ('b', b, bool);
-            TMP_PROP_ARRAY_READ('c', c, unsigned char);
-            TMP_PROP_ARRAY_READ('i', i, int32_t);
-            TMP_PROP_ARRAY_READ('l', l, int64_t);
-            TMP_PROP_ARRAY_READ('f', f, float);
-            TMP_PROP_ARRAY_READ('d', d, double);
-        }
-
-#undef TMP_PROP_ARRAY_READ
-
-        if (encoding == 1)
-        {
-            printf("Cleaning up from inflation\n");
-            free(source);
-            source = NULL;
-            inflateEnd(&stream);
-        }
-    }
-    else
-    {
-
-#define TMP_PROP_PRIM_READ(C, I, T)                   \
-    case C:                                           \
-        memcpy(&this->I, buffer + offset, sizeof(T)); \
-        offset += sizeof(T);                          \
-        break;
-
-        switch (this->type)
-        {
-            TMP_PROP_PRIM_READ('C', C, bool);
-            TMP_PROP_PRIM_READ('Y', Y, int16_t);
-            TMP_PROP_PRIM_READ('I', I, int32_t);
-            TMP_PROP_PRIM_READ('L', L, int64_t);
-            TMP_PROP_PRIM_READ('F', F, float);
-            TMP_PROP_PRIM_READ('D', D, double);
-        default:
-            LOG_ERR("Invalid prop type '%c'", this->type);
-        }
-
-#undef TMP_PROP_PRIM_READ
-    }
-
-    return offset;
+    LOG_ERR("Unknown property ID '%c'", this->type);
 
 error:
-
-    free(source);
-    inflateEnd(&stream);
 
     return offset;
 }
@@ -435,7 +446,15 @@ size_t fbx_node_read(fbx_node_t *this, char *buffer, size_t start_offset, size_t
     this->name[name_len] = '\0';
     offset += name_len;
 
-    fbx_node_print(this, 0);
+    for (i = 0; FBX_IGNORE[i]; ++i)
+    {
+        if (strcmp(this->name, FBX_IGNORE[i]) == 0)
+        {
+            offset = this->end_offset;
+            fbx_node_term(this);
+            return fbx_node_read(this, buffer, offset, buffer_len);
+        }
+    }
 
     if (this->num_props > 0)
     {
@@ -463,9 +482,7 @@ size_t fbx_node_read(fbx_node_t *this, char *buffer, size_t start_offset, size_t
         CHECK(offset > 0, "Failed to read node");
     }
 
-    offset = this->end_offset;
-
-    return offset;
+    return this->end_offset;
 
 error:
 
