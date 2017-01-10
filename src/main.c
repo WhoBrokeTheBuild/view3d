@@ -104,11 +104,6 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    bool ret = model_load_from_file(&g_model, argv[1], NULL, 0, NULL);
-    CHECK(ret, "Failed to load model");
-
-    return 0;
-
     srand(time(0));
 
     const int START_WIDTH = 1024;
@@ -128,7 +123,6 @@ int main(int argc, char **argv)
     camera_look_at(&g_cam, eye, center, up);
 
     camera_update(&g_cam);
-    camera_print(&g_cam);
 
     mat4x4_init(g_model_mat, 1.0f);
 
@@ -146,6 +140,9 @@ int main(int argc, char **argv)
         (void *)&g_render_data,
         &render_data_bind_cb
     };
+
+    bool ret = model_load_from_file(&g_model, argv[1], NULL, test, &data);
+    CHECK(ret, "Failed to load model");
 
     glutMainLoop();
 

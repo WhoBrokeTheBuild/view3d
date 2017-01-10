@@ -489,15 +489,83 @@ error:
     return offset;
 }
 
+fbx_node_t *fbx_node_find(fbx_node_t *parent, const char *in_id)
+{
+    int i;
+    char *id = NULL;
+    char *pch = NULL;
+    fbx_node_t *tmp = NULL;
+    bool multi = false;
+
+    CHECK(parent, "parent is NULL");
+
+    id = strdup(in_id);
+
+    pch = strchr(id, '.');
+    if (pch)
+    {
+        multi = true;
+    }
+
+    pch = id;
+    if (multi)
+    {
+        pch = strtok(id, ".");
+    }
+
+    for (i = 0; i < parent->num_nodes && pch; ++i)
+    {
+        if (strcmp(parent->nodes[i].name, pch) == 0)
+        {
+            if (multi)
+            {
+                pch = strtok(NULL, ".");
+                if (pch == NULL)
+                {
+                    tmp = &parent->nodes[i];
+                    break;
+                }
+            }
+            else
+            {
+                tmp = &parent->nodes[i];
+                break;
+            }
+
+            if (parent->nodes[i].num_nodes == 0)
+            {
+                free(id);
+                return NULL;
+            }
+
+            i = 0;
+            parent = &parent->nodes[i];
+            continue;
+        }
+    }
+
+    free(id);
+    return tmp;
+
+error:
+
+    free(id);
+    return NULL;
+}
+
 bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char *name)
 {
+    int i;
     FILE *fp = NULL;
     char *buffer = NULL;
     size_t buffer_len = 0;
     ssize_t read = 0;
     uint32_t version = 0;
     size_t offset = 0;
-    fbx_node_t node;
+    fbx_node_t root_node;
+    fbx_node_t *find, *verts, *faces;
+    raw_mesh_t *mesh = NULL;
+    int mesh_cap = 10;
 
     fp = fopen(filename, "r");
     CHECK(fp, "Failed to open file '%s'", filename);
@@ -512,31 +580,72 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
     read = fread(buffer, buffer_len, sizeof(char), fp);
     CHECK(read > 0, "Failed to read file '%s'", filename);
 
+    fclose(fp);
+
     CHECK(strncmp(buffer, FBX_FILE_ID, strlen(FBX_FILE_ID)) == 0, "Invalid FBX Format");
 
     memcpy(&version, buffer + 23, sizeof(unsigned int));
     LOG_INFO("FBX Version %d.%d", version / 1000, version % 1000);
 
-    for (offset = FBX_HEADER_SIZE; offset < buffer_len;)
+    fbx_node_init(&root_node);
+    offset = FBX_HEADER_SIZE;
+    for (i = 0; offset < buffer_len; ++i)
     {
-        fbx_node_init(&node);
-        offset = fbx_node_read(&node, buffer, offset, buffer_len);
-        if (node.end_offset == 0)
+        ++root_node.num_nodes;
+        root_node.nodes = realloc(root_node.nodes, root_node.num_nodes * sizeof(fbx_node_t));
+
+        fbx_node_init(&root_node.nodes[i]);
+        offset = fbx_node_read(&root_node.nodes[i], buffer, offset, buffer_len);
+        if (root_node.nodes[i].end_offset == 0)
         {
+            fbx_node_term(&root_node.nodes[i]);
+            --root_node.num_nodes;
+            root_node.nodes = malloc(root_node.num_nodes * sizeof(fbx_node_t));
             break;
         }
-
-        fbx_node_print(&node, 0);
-        fbx_node_term(&node);
     }
 
-    fclose(fp);
+    free(buffer);
+
+    raw_model_init(this);
+    ++this->count;
+    this->meshes = malloc(sizeof(raw_mesh_t) * this->count);
+    mesh = &this->meshes[0];
+    raw_mesh_init(mesh);
+
+    find = fbx_node_find(&root_node, "Objects.Geometry");
+    if (find)
+    {
+        verts = fbx_node_find(find, "Vertices");
+        faces = fbx_node_find(find, "PolygonVertexIndex");
+        if (verts && faces)
+        {
+            fbx_prop_t *face, *vert;
+            face = &faces->props[0];
+            vert = &verts->props[0];
+
+            int index;
+            mesh->verts = malloc(face->length * sizeof(float));
+            for (i = 0; i < face->length; ++i)
+            {
+                index = face->i[i];
+                if (index < 0)
+                {
+                    index += vert->length;
+                }
+                mesh->verts[i] = vert->d[index];
+                ++mesh->count;
+            }
+
+            LOG_INFO("Loaded %d verts", mesh->count / 3);
+        }
+    }
 
     return true;
 
 error:
 
+    free(buffer);
     fclose(fp);
-
     return false;
 }

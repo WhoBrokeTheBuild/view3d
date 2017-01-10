@@ -34,7 +34,7 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
     raw_model_init(this);
     ++this->count;
     this->meshes = malloc(sizeof(raw_mesh_t) * this->count);
-    mesh = &this->meshes[this->count - 1];
+    mesh = &this->meshes[0];
     raw_mesh_init(mesh);
 
     mesh->verts = malloc(sizeof(float) * mesh_cap * 3);
