@@ -489,7 +489,7 @@ error:
     return offset;
 }
 
-fbx_node_t *fbx_node_find(fbx_node_t *parent, const char *in_id)
+fbx_node_t *fbx_node_find(fbx_node_t *parent, const char *in_id, int skip)
 {
     int i;
     char *id = NULL;
@@ -517,6 +517,12 @@ fbx_node_t *fbx_node_find(fbx_node_t *parent, const char *in_id)
     {
         if (strcmp(parent->nodes[i].name, pch) == 0)
         {
+            if (skip > 0)
+            {
+                --skip;
+                continue;
+            }
+
             if (multi)
             {
                 pch = strtok(NULL, ".");
@@ -563,9 +569,17 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
     uint32_t version = 0;
     size_t offset = 0;
     fbx_node_t root_node;
-    fbx_node_t *find, *verts, *faces;
+
+    int total_verts = 0;
+    int total_norms = 0;
+    int total_txcds = 0;
+    fbx_node_t *obj_node = NULL;
+    fbx_node_t *geom_node = NULL;
+    fbx_node_t *vert_node = NULL;
+    fbx_node_t *face_node = NULL;
+    fbx_prop_t *face, *vert;
     raw_mesh_t *mesh = NULL;
-    int mesh_cap = 10;
+    int geom_index = 0;
 
     fp = fopen(filename, "r");
     CHECK(fp, "Failed to open file '%s'", filename);
@@ -608,38 +622,50 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
     free(buffer);
 
     raw_model_init(this);
-    ++this->count;
-    this->meshes = malloc(sizeof(raw_mesh_t) * this->count);
-    mesh = &this->meshes[0];
-    raw_mesh_init(mesh);
 
-    find = fbx_node_find(&root_node, "Objects.Geometry");
-    if (find)
+    obj_node = fbx_node_find(&root_node, "Objects", 0);
+    CHECK(obj_node, "No 'Objects' node found");
+
+    do
     {
-        verts = fbx_node_find(find, "Vertices");
-        faces = fbx_node_find(find, "PolygonVertexIndex");
-        if (verts && faces)
+        geom_node = fbx_node_find(obj_node, "Geometry", geom_index);
+        if (geom_node)
         {
-            fbx_prop_t *face, *vert;
-            face = &faces->props[0];
-            vert = &verts->props[0];
+            ++this->count;
+            this->meshes = realloc(this->meshes, sizeof(raw_mesh_t) * this->count);
+            mesh = &this->meshes[this->count - 1];
+            raw_mesh_init(mesh);
 
-            int index;
-            mesh->verts = malloc(face->length * sizeof(float));
-            for (i = 0; i < face->length; ++i)
+            vert_node = fbx_node_find(geom_node, "Vertices", 0);
+            face_node = fbx_node_find(geom_node, "PolygonVertexIndex", 0);
+            if (vert_node && face_node)
             {
-                index = face->i[i];
-                if (index < 0)
-                {
-                    index += vert->length;
-                }
-                mesh->verts[i] = vert->d[index];
-                ++mesh->count;
-            }
+                vert = &vert_node->props[0];
+                face = &face_node->props[0];
 
-            LOG_INFO("Loaded %d verts", mesh->count / 3);
+                int index;
+                mesh->verts = malloc(face->length * sizeof(vec3f_t));
+                for (i = 0; i < face->length; ++i)
+                {
+                    index = face->i[i];
+                    if (index < 0)
+                    {
+                        index *= -1;
+                        --index;
+                    }
+                    mesh->verts[i * 3 + 0] = vert->d[index * 3 + 0];
+                    mesh->verts[i * 3 + 1] = vert->d[index * 3 + 1];
+                    mesh->verts[i * 3 + 2] = vert->d[index * 3 + 2];
+                    ++mesh->count;
+                }
+
+                total_verts += mesh->count;
+            }
         }
-    }
+        ++geom_index;
+    } while (geom_node);
+
+    LOG_INFO("Loaded %s: Verts %d, Norms %d, Tex Coords %d", filename, total_verts, total_norms, total_txcds);
 
     return true;
 

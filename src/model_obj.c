@@ -12,6 +12,9 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
     vec3f_t tmp;
 
     int size = 10;
+    int total_verts = 0;
+    int total_norms = 0;
+    int total_txcds = 0;
     int vert_index = 0;
     int norm_index = 0;
     int txcd_index = 0;
@@ -74,12 +77,15 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
         }
         else if (line[0] == 'f')
         {
+            bool has_norm = false;
+            bool has_txcd = false;
             vec3i_init(face[0], 0);
             vec3i_init(face[1], 0);
             vec3i_init(face[2], 0);
             pch = strstr(line, "//");
             if (pch)
             {
+                has_norm = true;
                 sscanf(line, "%*s %d//%d %d//%d %d//%d", &face[0][0], &face[0][2], &face[1][0], &face[1][2], &face[2][0], &face[2][2]);
             }
             else
@@ -87,6 +93,8 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
                 pch = strchr(line, '/');
                 if (pch)
                 {
+                    has_norm = true;
+                    has_txcd = true;
                     sscanf(line, "%*s %d/%d/%d %d/%d/%d %d/%d/%d", &face[0][0], &face[0][1], &face[0][2], &face[1][0], &face[1][1], &face[1][2], &face[2][0], &face[2][1], &face[2][2]);
                 }
                 else
@@ -111,8 +119,18 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
                 }
 
                 vec3f_copy(mesh->verts + (mesh->count * 3), all_verts + ((face[i][0] - 1) * 3));
-                vec3f_copy(mesh->norms + (mesh->count * 3), all_norms + ((face[i][2] - 1) * 3));
-                vec2f_copy(mesh->txcds + (mesh->count * 2), all_txcds + ((face[i][1] - 1) * 2));
+                ++total_verts;
+
+                if (has_norm)
+                {
+                    vec3f_copy(mesh->norms + (mesh->count * 3), all_norms + ((face[i][2] - 1) * 3));
+                    ++total_norms;
+                }
+                if (has_txcd)
+                {
+                    vec2f_copy(mesh->txcds + (mesh->count * 2), all_txcds + ((face[i][1] - 1) * 2));
+                    ++total_txcds;
+                }
 
                 ++mesh->count;
             }
@@ -161,7 +179,7 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
         }
     }
 
-    LOG_INFO("Loaded %s: Verts %d, Norms %d, Tex Coords %d\n", filename, vert_index, norm_index, txcd_index);
+    LOG_INFO("Loaded %s: Verts %d, Norms %d, Tex Coords %d\n", filename, total_verts, total_norms, total_txcds);
 
     free(all_verts);
     free(all_norms);

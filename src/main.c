@@ -117,8 +117,8 @@ int main(int argc, char **argv)
 
     camera_init(&g_cam, START_WIDTH, START_HEIGHT, 0.01f, 100.0f, GLMM_RAD(45.0f));
 
-    vec3f_t eye = { 10.0f, 10.0f, 10.0f };
-    vec3f_t center = { 0.0f, 5.0f, 0.0f };
+    vec3f_t eye = { 1.5f, 1.5f, 1.5f };
+    vec3f_t center = { 0.0f, 0.0f, 0.0f };
     vec3f_t up = { 0.0f, 1.0f, 0.0f };
     camera_look_at(&g_cam, eye, center, up);
 
