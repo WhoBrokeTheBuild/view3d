@@ -17,6 +17,22 @@ model_loader_t g_model_loaders[] = {
     { NULL, NULL }
 };
 
+void calc_normal(vec3f_t normal, vec3f_t a, vec3f_t b, vec3f_t c)
+{
+    int i;
+    vec3f_t tmpa, tmpb;
+
+    for (i = 0; i < 3; ++i)
+    {
+        tmpa[i] = b[i] - a[i];
+        tmpb[i] = c[i] - a[i];
+    }
+
+    normal[0] = tmpa[1] * tmpb[2] - tmpa[2] * tmpb[1];
+    normal[1] = tmpa[2] * tmpb[0] - tmpa[0] * tmpb[2];
+    normal[1] = tmpa[0] * tmpb[1] - tmpa[1] * tmpb[0];
+}
+
 void raw_mesh_init(raw_mesh_t *this)
 {
     this->name = NULL;
@@ -45,10 +61,113 @@ void raw_mesh_term(raw_mesh_t *this)
     raw_mesh_init(this);
 }
 
+void raw_mesh_generate_cube(raw_mesh_t *this, float size)
+{
+    int i;
+    float cube_verts[] = {
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f, 1.0f,
+        -1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, 1.0f, -1.0f,
+        1.0f, -1.0f, 1.0f,
+        -1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f, 1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, 1.0f, 1.0f,
+        -1.0f, 1.0f, -1.0f,
+        1.0f, -1.0f, 1.0f,
+        -1.0f, -1.0f, 1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, 1.0f, 1.0f,
+        -1.0f, -1.0f, 1.0f,
+        1.0f, -1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f, 1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f, 1.0f, 1.0f,
+        1.0f, -1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, -1.0f,
+        -1.0f, 1.0f, -1.0f,
+        1.0f, 1.0f, 1.0f,
+        -1.0f, 1.0f, -1.0f,
+        -1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,
+        -1.0f, 1.0f, 1.0f,
+        1.0f, -1.0f, 1.0f
+    };
+
+    CHECK(this, "this is NULL");
+
+    for (i = 0; i < sizeof(cube_verts); ++i)
+    {
+        cube_verts[i] *= size;
+    }
+
+    this->count = 36;
+    this->verts = malloc(this->count * sizeof(vec3f_t));
+    memcpy(this->verts, cube_verts, this->count * sizeof(vec3f_t));
+
+// TODO: Normals & Tex Coords
+
+error:;
+}
+
+void raw_mesh_generate_sphere(raw_mesh_t *this, float radius, int slices, int stacks)
+{
+    int i;
+    int index;
+    vec3f_t tmp3;
+    vec3f_t tmp2;
+
+    CHECK(this, "this is NULL");
+
+    this->count = stacks * slices;
+    this->verts = malloc(this->count * sizeof(vec3f_t));
+    this->norms = malloc(this->count * sizeof(vec3f_t));
+    this->txcds = malloc(this->count * sizeof(vec2f_t));
+
+    for (i = 0; i <= stacks; ++i)
+    {
+        // V texture coordinate.
+        tmp2[1] = i / (float)stacks;
+        float phi = tmp2[1] * GLMM_PI;
+
+        for (int j = 0; j <= slices; ++j)
+        {
+            // U texture coordinate.
+            tmp2[0] = j / (float)slices;
+            float theta = tmp2[0] * GLMM_2PI;
+
+            tmp3[0] = cosf(theta) * sinf(phi);
+            tmp3[1] = cosf(phi);
+            tmp3[2] = sinf(theta) * sinf(phi);
+
+            index = (i * slices) + j;
+
+            vec3f_mul_scalar(this->verts + index, tmp3, radius);
+            vec3f_copy(this->norms + index, tmp3);
+            vec2f_copy(this->txcds + index, tmp2);
+        }
+    }
+
+error:;
+}
+
 void raw_model_init(raw_model_t *this)
 {
+    CHECK(this, "this is NULL");
+
     this->count = 0;
     this->meshes = NULL;
+
+error:;
 }
 
 void raw_model_term(raw_model_t *this)
@@ -103,16 +222,35 @@ bool mesh_load_from_raw(mesh_t *this, raw_mesh_t *raw)
 {
     this->count = raw->count;
 
-    GLuint vbo = 0;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * raw->count * 3, raw->verts, GL_STATIC_DRAW);
-
     glGenVertexArrays(1, &this->vao);
     glBindVertexArray(this->vao);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    GLuint vbos[4];
+    glGenBuffers(4, vbos);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * raw->count * 3, raw->verts, GL_STATIC_DRAW);
+    glVertexAttribPointer(MODEL_ATTRID_VERTS, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(MODEL_ATTRID_VERTS);
+
+    if (raw->norms)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * raw->count * 3, raw->norms, GL_STATIC_DRAW);
+        glVertexAttribPointer(MODEL_ATTRID_NORMS, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+        glEnableVertexAttribArray(MODEL_ATTRID_NORMS);
+    }
+
+    if (raw->txcds)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, vbos[2]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * raw->count * 2, raw->txcds, GL_STATIC_DRAW);
+        glVertexAttribPointer(MODEL_ATTRID_TXCDS, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+        glEnableVertexAttribArray(MODEL_ATTRID_TXCDS);
+    }
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     return true;
 }
@@ -161,6 +299,7 @@ bool model_load_from_raw(model_t *this, raw_model_t *raw, GLuint shader_id, shad
     {
         this->_shader_data = malloc(sizeof(shader_data_t));
         memcpy(this->_shader_data, shader_data, sizeof(shader_data_t));
+        shader_data_init(this->_shader_data, this->_shader_id);
     }
 
     this->count = raw->count;

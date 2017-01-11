@@ -1,10 +1,9 @@
 #ifndef VIEW3D_SHADERS_H
 #define VIEW3D_SHADERS_H
 
-#include <GL/glew.h>
-#include <GL/freeglut.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <view3d.h>
 
 #define MAX_SHADER_COUNT 100
 #define MAX_SHADER_SIZE 1000000
@@ -20,11 +19,13 @@ typedef struct
 
 typedef struct
 {
-    void* data;
-    void(*bind_cb)(void*);
+    void *data;
+    void (*init_cb)(void *, GLuint);
+    void (*bind_cb)(void *);
 } shader_data_t;
 
-void shader_data_bind(shader_data_t* this);
+void shader_data_init(shader_data_t *this, GLuint shader);
+void shader_data_bind(shader_data_t *this);
 
 bool shader_program_print_log(GLuint program);
 bool shader_print_log(GLuint shader);

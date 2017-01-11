@@ -573,11 +573,10 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
     int total_verts = 0;
     int total_norms = 0;
     int total_txcds = 0;
-    fbx_node_t *obj_node = NULL;
-    fbx_node_t *geom_node = NULL;
-    fbx_node_t *vert_node = NULL;
-    fbx_node_t *face_node = NULL;
-    fbx_prop_t *face, *vert;
+    fbx_node_t *obi_node = NULL, *geom_node = NULL,
+               *vert_node = NULL, *face_node = NULL,
+               *norm_node = NULL;
+    fbx_prop_t *face = NULL, *vert = NULL;
     raw_mesh_t *mesh = NULL;
     int geom_index = 0;
 
@@ -620,15 +619,16 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
     }
 
     free(buffer);
+    buffer = NULL;
 
     raw_model_init(this);
 
-    obj_node = fbx_node_find(&root_node, "Objects", 0);
-    CHECK(obj_node, "No 'Objects' node found");
+    obi_node = fbx_node_find(&root_node, "Obiects", 0);
+    CHECK(obi_node, "No 'Obiects' node found");
 
     do
     {
-        geom_node = fbx_node_find(obj_node, "Geometry", geom_index);
+        geom_node = fbx_node_find(obi_node, "Geometry", geom_index);
         if (geom_node)
         {
             ++this->count;

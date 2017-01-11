@@ -3,7 +3,7 @@
 
 bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char *name)
 {
-    int i;
+    int i, j;
     FILE *fp = NULL;
     char *line = NULL;
     size_t len = 0;
@@ -126,6 +126,7 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
                     vec3f_copy(mesh->norms + (mesh->count * 3), all_norms + ((face[i][2] - 1) * 3));
                     ++total_norms;
                 }
+
                 if (has_txcd)
                 {
                     vec2f_copy(mesh->txcds + (mesh->count * 2), all_txcds + ((face[i][1] - 1) * 2));
@@ -147,10 +148,6 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
         {
             if (read_first_mesh)
             {
-                mesh->verts = realloc(mesh->verts, sizeof(float) * mesh->count * 3);
-                mesh->norms = realloc(mesh->norms, sizeof(float) * mesh->count * 3);
-                mesh->txcds = realloc(mesh->txcds, sizeof(float) * mesh->count * 2);
-
                 mesh_cap = 10;
                 ++this->count;
                 this->meshes = realloc(this->meshes, sizeof(raw_mesh_t) * this->count);
@@ -166,7 +163,6 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
                 read_first_mesh = true;
             }
 
-            sscanf(line, "%*s %" MAX_MESH_NAME_LEN_FMT "s", mesh_name);
             mesh->name = strndup(mesh_name, MAX_MESH_NAME_LEN);
         }
 
@@ -179,18 +175,49 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
         }
     }
 
-    LOG_INFO("Loaded %s: Verts %d, Norms %d, Tex Coords %d\n", filename, total_verts, total_norms, total_txcds);
-
     free(all_verts);
     free(all_norms);
     free(all_txcds);
 
-    mesh->verts = realloc(mesh->verts, sizeof(float) * mesh->count * 3);
-    mesh->norms = realloc(mesh->norms, sizeof(float) * mesh->count * 3);
-    mesh->txcds = realloc(mesh->txcds, sizeof(float) * mesh->count * 2);
-
     fclose(fp);
     free(line);
+
+    for (i = 0; i < this->count; ++i)
+    {
+        mesh = &this->meshes[i];
+
+        mesh->verts = realloc(mesh->verts, sizeof(float) * mesh->count * 3);
+
+        // TODO: Fix, wont work on files with multiple objects
+        if (total_norms > 0)
+        {
+            mesh->norms = realloc(mesh->norms, sizeof(float) * mesh->count * 3);
+        }
+        else
+        {
+            for (j = 0; j < mesh->count; ++j)
+            {
+                calc_normal(&mesh->norms[j * 3], &mesh->verts[i * 3], &mesh->verts[i * 3 + 1], &mesh->verts[i * 3 + 2]);
+                vec3f_copy(&mesh->norms[j * 3 + 1], &mesh->norms[j * 3]);
+                vec3f_copy(&mesh->norms[j * 3 + 2], &mesh->norms[j * 3]);
+
+                ++total_norms;
+            }
+        }
+
+        // TODO: Fix, wont work on files with multiple objects
+        if (total_txcds > 0)
+        {
+            mesh->txcds = realloc(mesh->txcds, sizeof(float) * mesh->count * 2);
+        }
+        else
+        {
+            free(mesh->txcds);
+            mesh->txcds = NULL;
+        }
+    }
+
+    LOG_INFO("Loaded %s: Verts %d, Norms %d, Tex Coords %d\n", filename, total_verts, total_norms, total_txcds);
 
     return true;
 

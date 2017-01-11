@@ -3,6 +3,11 @@
 #include <debug.h>
 #include <util.h>
 
+void shader_data_init(shader_data_t *this, GLuint shader)
+{
+    this->init_cb(this->data, shader);
+}
+
 void shader_data_bind(shader_data_t *this)
 {
     this->bind_cb(this->data);
