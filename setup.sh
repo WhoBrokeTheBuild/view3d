@@ -17,19 +17,8 @@ case $distro in
             clang \
             freeglut-devel \
             glew-devel \
-            check-devel
-        sudo dnf debuginfo-install -y \
-            freeglut \
-            libgcc \
-            libGLEW \
-            libICE \
-            libX11 \
-            libXau \
-            libxcb \
-            libXext \
-            libXi \
-            libXxf86vm \
-            mesa-libGLU
+            check-devel \
+            zlib-devel
         ;;
     centos)
         sudo yum install -y \
@@ -37,7 +26,8 @@ case $distro in
             clang \
             freeglut-devel \
             glew-devel \
-            check-devel
+            check-devel \
+            zlib-devel
         ;;
     * )
         echo "Unsupported Distro"
