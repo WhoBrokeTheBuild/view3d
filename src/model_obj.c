@@ -3,30 +3,96 @@
 
 const int OBJ_DEF_ARR_SIZE = 10;
 
+int raw_material_load_from_mtl(raw_material_t **materials, const char *dir, const char *filename, int count)
+{
+    char path[V3D_MAX_PATH_LEN];
+    FILE *fp = NULL;
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read = 0;
+    raw_material_t *mat = NULL;
+
+    if (dir)
+    {
+        strcpy(path, dir);
+    }
+
+    strcpy(path + strlen(dir), filename);
+
+    fp = fopen(path, "r");
+    CHECK(fp, "Failed to open '%s'", path);
+
+    while ((read = getline(&line, &len, fp)) != -1)
+    {
+        if (read == 0)
+            break;
+        if (line[0] == '#' || line[0] == '\n')
+            continue;
+
+        line[read - 1] = '\0';
+
+        if (mat)
+        {
+            if (strncmp(line, "map_Kd", 6) == 0)
+            {
+                if (dir)
+                {
+                    strcpy(path, dir);
+                }
+                strcpy(path + strlen(dir), line + 7);
+                mat->diffuse_map = _strndup(path, V3D_MAX_PATH_LEN);
+            }
+        }
+
+        if (strncmp(line, "newmtl", 6) == 0)
+        {
+            ++count;
+            *materials = realloc(*materials, count * sizeof(raw_material_t));
+            CHECK_MEM(*materials);
+            mat = &(*materials)[count - 1];
+            raw_material_init(mat);
+
+            mat->name = _strndup(line + 7, V3D_MAX_NAME_LEN);
+        }
+    }
+
+    fclose(fp);
+
+    return count;
+
+error:
+
+    fclose(fp);
+
+    return count;
+}
+
 bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char *name)
 {
-
     int i, j;
     FILE *fp = NULL;
     char *line = NULL;
     size_t len = 0;
     ssize_t read = 0;
-    char *pch;
+    char *dir = NULL;
+    char *pch = NULL;
     vec3f_t tmp;
 
     int all_verts_cap = OBJ_DEF_ARR_SIZE;
     int all_norms_cap = OBJ_DEF_ARR_SIZE;
     int all_txcds_cap = OBJ_DEF_ARR_SIZE;
+    float *all_verts = NULL;
+    float *all_norms = NULL;
+    float *all_txcds = NULL;
     int all_verts_index = 0;
     int all_norms_index = 0;
     int all_txcds_index = 0;
-    float *all_verts = malloc(sizeof(float) * all_verts_cap * 3);
-    float *all_norms = malloc(sizeof(float) * all_norms_cap * 3);
-    float *all_txcds = malloc(sizeof(float) * all_txcds_cap * 2);
+
     int verts_loaded = 0;
     int norms_loaded = 0;
     int txcds_loaded = 0;
 
+    unsigned int slash_count = 0;
     bool has_norm = false;
     bool has_txcd = false;
     vec3i_t face[3];
@@ -45,15 +111,35 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
     mesh_name[V3D_MAX_NAME_LEN] = '\0';
     bool read_first_mesh = false;
 
+    int material_count = 0;
+    raw_material_t *materials = NULL;
+
+    all_verts = malloc(sizeof(float) * all_verts_cap * 3);
+    all_norms = malloc(sizeof(float) * all_norms_cap * 3);
+    all_txcds = malloc(sizeof(float) * all_txcds_cap * 2);
+    CHECK_MEM(all_verts);
+    CHECK_MEM(all_norms);
+    CHECK_MEM(all_txcds);
+
     raw_model_init(this);
     ++this->count;
     this->meshes = malloc(sizeof(raw_mesh_t) * this->count);
+    CHECK_MEM(this->meshes);
     mesh = &this->meshes[0];
     raw_mesh_init(mesh);
 
     mesh->verts = malloc(sizeof(float) * mesh_verts_cap * 3);
     mesh->norms = malloc(sizeof(float) * mesh_norms_cap * 3);
     mesh->txcds = malloc(sizeof(float) * mesh_txcds_cap * 2);
+    CHECK_MEM(mesh->verts);
+    CHECK_MEM(mesh->norms);
+    CHECK_MEM(mesh->txcds);
+
+    pch = strrchr(filename, '/');
+    if (pch)
+    {
+        dir = _strndup(filename, pch - filename + 1);
+    }
 
     fp = fopen(filename, "r");
     CHECK(fp, "Failed to open '%s'", filename);
@@ -64,6 +150,8 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
             break;
         if (line[0] == '#' || line[0] == '\n')
             continue;
+
+        line[read - 1] = '\0';
 
         if (line[0] == 'v')
         {
@@ -104,9 +192,18 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
                 pch = strchr(line, '/');
                 if (pch)
                 {
-                    has_norm = true;
-                    has_txcd = true;
-                    sscanf(line, "%*s %d/%d/%d %d/%d/%d %d/%d/%d", &face[0][0], &face[0][1], &face[0][2], &face[1][0], &face[1][1], &face[1][2], &face[2][0], &face[2][1], &face[2][2]);
+                    slash_count = strcntchr(line, '/');
+                    if (slash_count > 3)
+                    {
+                        has_norm = true;
+                        has_txcd = true;
+                        sscanf(line, "%*s %d/%d/%d %d/%d/%d %d/%d/%d", &face[0][0], &face[0][1], &face[0][2], &face[1][0], &face[1][1], &face[1][2], &face[2][0], &face[2][1], &face[2][2]);
+                    }
+                    else
+                    {
+                        has_txcd = true;
+                        sscanf(line, "%*s %d/%d %d/%d %d/%d", &face[0][0], &face[0][2], &face[1][0], &face[1][2], &face[2][0], &face[2][2]);
+                    }
                 }
                 else
                 {
@@ -151,18 +248,21 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
             {
                 mesh_verts_cap *= 2;
                 mesh->verts = realloc(mesh->verts, sizeof(float) * mesh_verts_cap * 3);
+                CHECK_MEM(mesh->verts);
             }
 
             if (mesh_norms_index >= mesh_norms_cap - 6)
             {
                 mesh_norms_cap *= 2;
                 mesh->norms = realloc(mesh->norms, sizeof(float) * mesh_norms_cap * 3);
+                CHECK_MEM(mesh->norms);
             }
 
             if (mesh_txcds_index >= mesh_txcds_cap - 6)
             {
                 mesh_txcds_cap *= 2;
                 mesh->txcds = realloc(mesh->txcds, sizeof(float) * mesh_txcds_cap * 2);
+                CHECK_MEM(mesh->txcds);
             }
         }
         else if (line[0] == 'g' || line[0] == 'o')
@@ -176,11 +276,12 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
                     LOG_INFO("Generating normals for '%s'", mesh->name);
                     mesh_norms_index = mesh_verts_index;
                     mesh->norms = realloc(mesh->norms, sizeof(float) * mesh_norms_index * 3);
+                    CHECK_MEM(mesh->norms);
                     for (j = 0; j < mesh_verts_index; ++j)
                     {
                         calc_normal(&mesh->norms[j * 3 + 0], &mesh->verts[j * 3 + 0], &mesh->verts[j * 3 + 1], &mesh->verts[j * 3 + 2]);
-                        vec3f_copy(&mesh->norms[j * 3 + 1], &mesh->norms[i * 3]);
-                        vec3f_copy(&mesh->norms[j * 3 + 2], &mesh->norms[i * 3]);
+                        vec3f_copy(&mesh->norms[j * 3 + 1], &mesh->norms[j * 3]);
+                        vec3f_copy(&mesh->norms[j * 3 + 2], &mesh->norms[j * 3]);
                     }
                 }
                 else
@@ -203,6 +304,7 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
 
                 ++this->count;
                 this->meshes = realloc(this->meshes, sizeof(raw_mesh_t) * this->count);
+                CHECK_MEM(this->meshes);
                 mesh = &this->meshes[this->count - 1];
                 raw_mesh_init(mesh);
 
@@ -215,6 +317,9 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
                 mesh->verts = malloc(sizeof(float) * mesh_verts_cap * 3);
                 mesh->norms = malloc(sizeof(float) * mesh_norms_cap * 3);
                 mesh->txcds = malloc(sizeof(float) * mesh_txcds_cap * 2);
+                CHECK_MEM(mesh->verts);
+                CHECK_MEM(mesh->norms);
+                CHECK_MEM(mesh->txcds);
             }
             else
             {
@@ -224,23 +329,33 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
             sscanf(line, "%*s %s" V3D_MAX_NAME_LEN_FMT "s", mesh_name);
             mesh->name = _strndup(mesh_name, V3D_MAX_NAME_LEN);
         }
+        else if (strncmp(line, "mtllib", 6) == 0)
+        {
+            material_count += raw_material_load_from_mtl(&materials, dir, line + 7, material_count);
+        }
+        else if (strncmp(line, "usemtl", 6) == 0)
+        {
+        }
 
         if (all_verts_index >= all_verts_cap - 1)
         {
             all_verts_cap *= 2;
             all_verts = realloc(all_verts, sizeof(float) * all_verts_cap * 3);
+            CHECK_MEM(all_verts);
         }
 
         if (all_norms_index >= all_norms_cap - 1)
         {
             all_norms_cap *= 2;
             all_norms = realloc(all_norms, sizeof(float) * all_norms_cap * 3);
+            CHECK_MEM(all_norms);
         }
 
         if (all_txcds_index >= all_txcds_cap - 1)
         {
             all_txcds_cap *= 2;
             all_txcds = realloc(all_txcds, sizeof(float) * all_txcds_cap * 2);
+            CHECK_MEM(all_txcds);
         }
     }
 
@@ -254,8 +369,8 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
         for (j = 0; j < mesh_verts_index; ++j)
         {
             calc_normal(&mesh->norms[j * 3 + 0], &mesh->verts[j * 3 + 0], &mesh->verts[j * 3 + 1], &mesh->verts[j * 3 + 2]);
-            vec3f_copy(&mesh->norms[j * 3 + 1], &mesh->norms[i * 3]);
-            vec3f_copy(&mesh->norms[j * 3 + 2], &mesh->norms[i * 3]);
+            vec3f_copy(&mesh->norms[j * 3 + 1], &mesh->norms[j * 3]);
+            vec3f_copy(&mesh->norms[j * 3 + 2], &mesh->norms[j * 3]);
         }
     }
     else

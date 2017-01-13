@@ -495,8 +495,8 @@ void model_draw(model_t *this)
     for (i = 0; i < this->count; ++i)
     {
         glBindVertexArray(this->meshes[i].vao);
+        glDrawArrays(GL_TRIANGLES, 0, this->meshes[i].count);
     }
-    glDrawArrays(GL_TRIANGLES, 0, this->meshes[i].count);
 
 error:;
 }

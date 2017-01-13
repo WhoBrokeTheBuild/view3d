@@ -7,6 +7,10 @@ in vec2 _texcoord;
 uniform vec4 u_eye_pos;
 uniform vec4 u_light_pos;
 
+uniform vec4 u_mtl_diffuse;
+
+uniform sampler2D u_tex_diffuse;
+
 layout (location = 0) out vec4 o_color;
 
 void main()
@@ -14,11 +18,11 @@ void main()
     // TODO: Convert to Uniforms
     vec4 light_color = vec4(1.0f, 0.6f, 0.6f, 1.0f);
     vec4 mtl_emissive = vec4(0.0f);
-    vec4 mtl_diffuse = vec4(0.3412, 0.8784, 0.7765, 1.0f);
+
     vec4 mtl_specular = vec4(0.3500, 0.3500, 0.3500, 1.0f);
     float mtl_shininess = 35;
     vec4 ambient = vec4(0.1f, 0.1f, 0.1f, 1.0f);
-    vec4 _light_pos = vec4(1.0f, 2.0f, 2.0f, 1.0f);
+    vec4 _light_pos = vec4(10.0f, 10.0f, 10.0f, 1.0f);
 
     vec4 emissive = mtl_emissive;
 
@@ -32,6 +36,6 @@ void main()
     float RdotV = max(dot(R, V), 0);
     vec4 specular = pow(RdotV, mtl_shininess) * light_color * mtl_specular;
 
-    o_color = (emissive + ambient + diffuse + specular) * mtl_diffuse;
+    o_color = (emissive + ambient + diffuse + specular) * u_mtl_diffuse * texture(u_tex_diffuse, _texcoord);
     //o_color = vec4(1.0f);
 }

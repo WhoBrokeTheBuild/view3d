@@ -29,6 +29,22 @@ void calc_normal(vec3f_t normal, vec3f_t a, vec3f_t b, vec3f_t c)
     vec3f_cross(normal, tmpa, tmpb);
 }
 
+unsigned int strcntchr(const char *str, char c)
+{
+    int i;
+    unsigned int count = 0;
+
+    for (i = 0; str[i]; ++i)
+    {
+        if (str[i] == c)
+        {
+            ++count;
+        }
+    }
+
+    return count;
+}
+
 char *_strdup(const char *str)
 {
     size_t len;
