@@ -2,6 +2,7 @@
 #include <model_blend.h>
 #include <model_fbx.h>
 #include <model_obj.h>
+#include <string.h>
 
 typedef struct
 {
@@ -17,90 +18,124 @@ model_loader_t g_model_loaders[] = {
     { NULL, NULL }
 };
 
-void calc_normal(vec3f_t normal, vec3f_t a, vec3f_t b, vec3f_t c)
+void raw_material_init(raw_material_t *this)
 {
-    int i;
-    vec3f_t tmpa, tmpb;
+    CHECK(this, "this is NULL");
 
-    for (i = 0; i < 3; ++i)
-    {
-        tmpa[i] = b[i] - a[i];
-        tmpb[i] = c[i] - a[i];
-    }
+    this->name = NULL;
+    vec3f_init(this->ambrefl, 0.0f);
+    vec3f_init(this->diffuse, 0.0f);
+    vec3f_init(this->specular, 0.0f);
+    this->dissolve = 0;
+    this->ambrefl_map = NULL;
+    this->diffuse_map = NULL;
+    this->specular_map = NULL;
+    this->bump_map = NULL;
+    this->refl_map = NULL;
 
-    normal[0] = tmpa[1] * tmpb[2] - tmpa[2] * tmpb[1];
-    normal[1] = tmpa[2] * tmpb[0] - tmpa[0] * tmpb[2];
-    normal[1] = tmpa[0] * tmpb[1] - tmpa[1] * tmpb[0];
+error:;
+}
+
+void raw_material_term(raw_material_t *this)
+{
+    CHECK(this, "this is NULL");
+
+    free(this->name);
+    this->name = NULL;
+    vec3f_init(this->ambrefl, 0.0f);
+    vec3f_init(this->diffuse, 0.0f);
+    vec3f_init(this->specular, 0.0f);
+    this->dissolve = 0;
+    free(this->ambrefl_map);
+    free(this->diffuse_map);
+    free(this->specular_map);
+    free(this->bump_map);
+    free(this->refl_map);
+    this->ambrefl_map = NULL;
+    this->diffuse_map = NULL;
+    this->specular_map = NULL;
+    this->bump_map = NULL;
+    this->refl_map = NULL;
+
+error:;
+}
+
+void raw_material_copy(raw_material_t *dst, raw_material_t *src)
+{
+    CHECK(dst, "dst is NULL");
+    CHECK(dst, "src is NULL");
+
+    raw_material_term(dst);
+
+    dst->name = _strndup(src->name, V3D_MAX_NAME_LEN);
+    CHECK_MEM(dst->name);
+    vec3f_copy(dst->ambrefl, src->ambrefl);
+    vec3f_copy(dst->diffuse, src->diffuse);
+    vec3f_copy(dst->specular, src->specular);
+    dst->ambrefl_map = _strndup(src->ambrefl_map, V3D_MAX_PATH_LEN);
+    CHECK_MEM(dst->ambrefl_map);
+    dst->diffuse_map = _strndup(src->diffuse_map, V3D_MAX_PATH_LEN);
+    CHECK_MEM(dst->diffuse_map);
+    dst->specular_map = _strndup(src->specular_map, V3D_MAX_PATH_LEN);
+    CHECK_MEM(dst->specular_map);
+    dst->bump_map = _strndup(src->bump_map, V3D_MAX_PATH_LEN);
+    CHECK_MEM(dst->bump_map);
+    dst->refl_map = _strndup(src->refl_map, V3D_MAX_PATH_LEN);
+    CHECK_MEM(dst->refl_map);
+
+error:;
 }
 
 void raw_mesh_init(raw_mesh_t *this)
 {
+    CHECK(this, "this is NULL");
+
     this->name = NULL;
     this->count = 0;
     this->verts = NULL;
     this->norms = NULL;
     this->txcds = NULL;
-    vec4f_init(this->color, 0.0f);
-    this->diff_map = NULL;
+    this->mat = malloc(sizeof(raw_material_t));
+    raw_material_init(this->mat);
+
+error:;
 }
 
 void raw_mesh_term(raw_mesh_t *this)
 {
+    CHECK(this, "this is NULL");
+
     free(this->name);
     this->name = NULL;
     this->count = 0;
     free(this->verts);
-    this->verts = NULL;
     free(this->norms);
-    this->norms = NULL;
     free(this->txcds);
+    free(this->mat);
+    this->verts = NULL;
+    this->norms = NULL;
     this->txcds = NULL;
-    free(this->diff_map);
-    this->diff_map = NULL;
+    this->mat = NULL;
 
-    raw_mesh_init(this);
+error:;
 }
 
 void raw_mesh_generate_cube(raw_mesh_t *this, float size)
 {
     int i;
     float cube_verts[] = {
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f, 1.0f,
-        -1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, 1.0f, -1.0f,
-        1.0f, -1.0f, 1.0f,
-        -1.0f, -1.0f, -1.0f,
-        1.0f, -1.0f, -1.0f,
-        1.0f, 1.0f, -1.0f,
-        1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, 1.0f, 1.0f,
-        -1.0f, 1.0f, -1.0f,
-        1.0f, -1.0f, 1.0f,
-        -1.0f, -1.0f, 1.0f,
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, 1.0f, 1.0f,
-        -1.0f, -1.0f, 1.0f,
-        1.0f, -1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f,
-        1.0f, -1.0f, -1.0f,
-        1.0f, 1.0f, -1.0f,
-        1.0f, -1.0f, -1.0f,
-        1.0f, 1.0f, 1.0f,
-        1.0f, -1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, -1.0f,
-        -1.0f, 1.0f, -1.0f,
-        1.0f, 1.0f, 1.0f,
-        -1.0f, 1.0f, -1.0f,
-        -1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f,
-        -1.0f, 1.0f, 1.0f,
-        1.0f, -1.0f, 1.0f
+        -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f,
+        1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
+        1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f,
+        1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f,
+        -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f,
+        1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f
     };
 
     CHECK(this, "this is NULL");
@@ -173,6 +208,9 @@ error:;
 void raw_model_term(raw_model_t *this)
 {
     int i;
+
+    CHECK(this, "this is NULL");
+
     for (i = 0; i < this->count; ++i)
     {
         raw_mesh_term(&this->meshes[i]);
@@ -180,12 +218,17 @@ void raw_model_term(raw_model_t *this)
     free(this->meshes);
     this->meshes = NULL;
     this->count = 0;
+
+error:;
 }
 
 bool raw_model_load_from_file(raw_model_t *this, const char *filename, const char *name)
 {
     int i = 0;
     char *pch = NULL;
+
+    CHECK(this, "this is NULL");
+    CHECK(filename, "filename is NULL");
 
     pch = strrchr(filename, '.');
     CHECK(pch, "No file extension found for '%s'", filename);
@@ -205,22 +248,118 @@ error:
     return false;
 }
 
+void material_init(material_t *this)
+{
+    CHECK(this, "this is NULL");
+
+    this->name = NULL;
+    vec3f_init(this->ambrefl, 0.0f);
+    vec3f_init(this->diffuse, 0.0f);
+    vec3f_init(this->specular, 0.0f);
+    this->dissolve = 0.0f;
+    this->ambrefl_map = 0;
+    this->diffuse_map = 0;
+    this->specular_map = 0;
+    this->bump_map = 0;
+    this->refl_map = 0;
+
+error:;
+}
+
+void material_term(material_t *this)
+{
+    CHECK(this, "this is NULL");
+
+    free(this->name);
+    this->name = NULL;
+    vec3f_init(this->ambrefl, 0.0f);
+    vec3f_init(this->diffuse, 0.0f);
+    vec3f_init(this->specular, 0.0f);
+    this->dissolve = 0.0f;
+    glDeleteTextures(1, &this->ambrefl_map);
+    glDeleteTextures(1, &this->diffuse_map);
+    glDeleteTextures(1, &this->specular_map);
+    glDeleteTextures(1, &this->bump_map);
+    glDeleteTextures(1, &this->refl_map);
+    this->ambrefl_map = 0;
+    this->diffuse_map = 0;
+    this->specular_map = 0;
+    this->bump_map = 0;
+    this->refl_map = 0;
+
+error:;
+}
+
+bool material_load_from_raw(material_t *this, raw_material_t *raw)
+{
+    CHECK(this, "this is NULL");
+
+    this->name = _strndup(raw->name, V3D_MAX_NAME_LEN);
+    //CHECK_MEM(this->name);
+    vec3f_copy(this->ambrefl, raw->ambrefl);
+    vec3f_copy(this->diffuse, raw->diffuse);
+    vec3f_copy(this->specular, raw->specular);
+    this->dissolve = raw->dissolve;
+    if (raw->ambrefl_map)
+    {
+        this->ambrefl_map = load_texture(raw->ambrefl_map);
+    }
+    if (raw->ambrefl_map)
+    {
+        this->ambrefl_map = load_texture(raw->ambrefl_map);
+    }
+    if (raw->ambrefl_map)
+    {
+        this->ambrefl_map = load_texture(raw->ambrefl_map);
+    }
+    if (raw->ambrefl_map)
+    {
+        this->ambrefl_map = load_texture(raw->ambrefl_map);
+    }
+    if (raw->ambrefl_map)
+    {
+        this->ambrefl_map = load_texture(raw->ambrefl_map);
+    }
+
+    return true;
+
+error:
+
+    return false;
+}
+
 void mesh_init(mesh_t *this)
 {
+    CHECK(this, "this is NULL");
+
     this->count = 0;
     this->vao = 0;
+    this->mat = malloc(sizeof(material_t));
+    material_init(this->mat);
+
+error:;
 }
 
 void mesh_term(mesh_t *this)
 {
+    CHECK(this, "this is NULL");
+
     this->count = 0;
     glDeleteVertexArrays(1, &this->vao);
     this->vao = 0;
+    free(this->mat);
+    this->mat = NULL;
+
+error:;
 }
 
 bool mesh_load_from_raw(mesh_t *this, raw_mesh_t *raw)
 {
+    CHECK(this, "this is NULL");
+
     this->count = raw->count;
+    this->mat = malloc(sizeof(material_t));
+    material_load_from_raw(this->mat, raw->mat);
 
     glGenVertexArrays(1, &this->vao);
     glBindVertexArray(this->vao);
@@ -253,19 +392,30 @@ bool mesh_load_from_raw(mesh_t *this, raw_mesh_t *raw)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     return true;
+
+error:
+
+    return false;
 }
 
 void model_init(model_t *this)
 {
+    CHECK(this, "this is NULL");
+
     this->count = 0;
     this->meshes = NULL;
     this->_shader_id = 0;
     this->_shader_data = NULL;
+
+error:;
 }
 
 void model_term(model_t *this)
 {
     int i;
+
+    CHECK(this, "this is NULL");
+
     for (i = 0; i < this->count; ++i)
     {
         mesh_term(&this->meshes[i]);
@@ -274,12 +424,17 @@ void model_term(model_t *this)
     free(this->meshes);
     this->meshes = NULL;
     this->_shader_id = 0;
+
+error:;
 }
 
 bool model_load_from_file(model_t *this, const char *filename, const char *name, GLuint shader_id, shader_data_t *shader_data)
 {
     bool ret;
     raw_model_t raw;
+
+    CHECK(this, "this is NULL");
+    CHECK(filename, "filename is NULL");
 
     raw_model_init(&raw);
     raw_model_load_from_file(&raw, filename, name);
@@ -288,11 +443,18 @@ bool model_load_from_file(model_t *this, const char *filename, const char *name,
     raw_model_term(&raw);
 
     return ret;
+
+error:
+
+    return false;
 }
 
 bool model_load_from_raw(model_t *this, raw_model_t *raw, GLuint shader_id, shader_data_t *shader_data)
 {
     int i;
+
+    CHECK(this, "this is NULL");
+    CHECK(raw, "raw is NULL");
 
     this->_shader_id = shader_id;
     if (shader_data)
@@ -321,6 +483,8 @@ void model_draw(model_t *this)
 {
     int i;
 
+    CHECK(this, "this is NULL");
+
     glUseProgram(this->_shader_id);
 
     if (this->_shader_data)
@@ -331,6 +495,8 @@ void model_draw(model_t *this)
     for (i = 0; i < this->count; ++i)
     {
         glBindVertexArray(this->meshes[i].vao);
-        glDrawArrays(GL_TRIANGLES, 0, this->meshes[i].count);
     }
+    glDrawArrays(GL_TRIANGLES, 0, this->meshes[i].count);
+
+error:;
 }

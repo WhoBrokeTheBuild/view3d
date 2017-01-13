@@ -12,7 +12,7 @@ layout (location = 0) out vec4 o_color;
 void main()
 {
     // TODO: Convert to Uniforms
-    vec4 light_color = vec4(0.8f, 0.6f, 0.6f, 1.0f);
+    vec4 light_color = vec4(1.0f, 0.6f, 0.6f, 1.0f);
     vec4 mtl_emissive = vec4(0.0f);
     vec4 mtl_diffuse = vec4(0.3412, 0.8784, 0.7765, 1.0f);
     vec4 mtl_specular = vec4(0.3500, 0.3500, 0.3500, 1.0f);

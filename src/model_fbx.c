@@ -441,7 +441,7 @@ size_t fbx_node_read(fbx_node_t *this, char *buffer, size_t start_offset, size_t
 
     CHECK(name_len <= FBX_MAX_NODE_NAME_LEN, "Node name length of %zu exceeds limit of %zu", name_len, FBX_MAX_NODE_NAME_LEN);
 
-    this->name = malloc((name_len + 1) * sizeof(char));
+    this->name = (char *)malloc((name_len + 1));
     memcpy(this->name, buffer + offset, name_len);
     this->name[name_len] = '\0';
     offset += name_len;
@@ -570,17 +570,17 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
     size_t offset = 0;
     fbx_node_t root_node;
 
-    int total_verts = 0;
-    int total_norms = 0;
-    int total_txcds = 0;
-    fbx_node_t *obi_node = NULL, *geom_node = NULL,
+    int verts_loaded = 0;
+    int norms_loaded = 0;
+    int txcds_loaded = 0;
+    fbx_node_t *obj_node = NULL, *geom_node = NULL,
                *vert_node = NULL, *face_node = NULL,
                *norm_node = NULL;
     fbx_prop_t *face = NULL, *vert = NULL;
     raw_mesh_t *mesh = NULL;
     int geom_index = 0;
 
-    fp = fopen(filename, "r");
+    fp = fopen(filename, "rb");
     CHECK(fp, "Failed to open file '%s'", filename);
 
     fseek(fp, 0, SEEK_END);
@@ -601,6 +601,8 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
     LOG_INFO("FBX Version %d.%d", version / 1000, version % 1000);
 
     fbx_node_init(&root_node);
+    root_node.name = _strdup("Root");
+
     offset = FBX_HEADER_SIZE;
     for (i = 0; offset < buffer_len; ++i)
     {
@@ -613,7 +615,7 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
         {
             fbx_node_term(&root_node.nodes[i]);
             --root_node.num_nodes;
-            root_node.nodes = malloc(root_node.num_nodes * sizeof(fbx_node_t));
+            root_node.nodes = realloc(root_node.nodes, root_node.num_nodes * sizeof(fbx_node_t));
             break;
         }
     }
@@ -623,18 +625,20 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
 
     raw_model_init(this);
 
-    obi_node = fbx_node_find(&root_node, "Obiects", 0);
-    CHECK(obi_node, "No 'Obiects' node found");
+    obj_node = fbx_node_find(&root_node, "Objects", 0);
+    CHECK(obj_node, "No 'Objects' node found");
 
     do
     {
-        geom_node = fbx_node_find(obi_node, "Geometry", geom_index);
+        geom_node = fbx_node_find(obj_node, "Geometry", geom_index);
         if (geom_node)
         {
             ++this->count;
             this->meshes = realloc(this->meshes, sizeof(raw_mesh_t) * this->count);
             mesh = &this->meshes[this->count - 1];
             raw_mesh_init(mesh);
+
+            mesh->name = _strndup(geom_node->props[1].S, V3D_MAX_NAME_LEN);
 
             vert_node = fbx_node_find(geom_node, "Vertices", 0);
             face_node = fbx_node_find(geom_node, "PolygonVertexIndex", 0);
@@ -659,17 +663,34 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
                     ++mesh->count;
                 }
 
-                total_verts += mesh->count;
+                verts_loaded += mesh->count;
+
+                // TODO: Try loading Normals
+                LOG_INFO("Generating normals for %s", mesh->name);
+                mesh->norms = malloc(face->length * sizeof(vec3f_t));
+                for (i = 0; i < face->length; ++i)
+                {
+                    calc_normal(&mesh->norms[i * 3 + 0], &mesh->verts[i * 3 + 0], &mesh->verts[i * 3 + 1], &mesh->verts[i * 3 + 2]);
+                    vec3f_copy(&mesh->norms[i * 3 + 1], &mesh->norms[i * 3]);
+                    vec3f_copy(&mesh->norms[i * 3 + 2], &mesh->norms[i * 3]);
+                }
+                norms_loaded += mesh->count;
             }
         }
         ++geom_index;
     } while (geom_node);
 
-    LOG_INFO("Loaded %s: Verts %d, Norms %d, Tex Coords %d", filename, total_verts, total_norms, total_txcds);
+    fbx_node_term(&root_node);
+
+    LOG_INFO("Loaded %s: Verts %d, Norms %d, Tex Coords %d", filename, verts_loaded, norms_loaded, txcds_loaded);
 
     return true;
 
 error:
+
+    fbx_node_term(&root_node);
+
+    raw_model_term(this);
 
     free(buffer);
     fclose(fp);
