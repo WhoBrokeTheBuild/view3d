@@ -23,9 +23,12 @@ void raw_material_init(raw_material_t *this)
     CHECK(this, "this is NULL");
 
     this->name = NULL;
-    vec3f_init(this->ambrefl, 0.0f);
-    vec3f_init(this->diffuse, 0.0f);
-    vec3f_init(this->specular, 0.0f);
+    vec4f_init(this->ambrefl, 0.0f);
+    this->ambrefl[3] = 1.0f;
+    vec4f_init(this->diffuse, 0.0f);
+    this->diffuse[3] = 1.0f;
+    vec4f_init(this->specular, 0.0f);
+    this->specular[3] = 1.0f;
     this->dissolve = 0;
     this->ambrefl_map = NULL;
     this->diffuse_map = NULL;
@@ -42,9 +45,12 @@ void raw_material_term(raw_material_t *this)
 
     free(this->name);
     this->name = NULL;
-    vec3f_init(this->ambrefl, 0.0f);
-    vec3f_init(this->diffuse, 0.0f);
-    vec3f_init(this->specular, 0.0f);
+    vec4f_init(this->ambrefl, 0.0f);
+    this->ambrefl[3] = 1.0f;
+    vec4f_init(this->diffuse, 0.0f);
+    this->diffuse[3] = 1.0f;
+    vec4f_init(this->specular, 0.0f);
+    this->specular[3] = 1.0f;
     this->dissolve = 0;
     free(this->ambrefl_map);
     free(this->diffuse_map);
@@ -67,21 +73,39 @@ void raw_material_copy(raw_material_t *dst, raw_material_t *src)
 
     raw_material_term(dst);
 
-    dst->name = _strndup(src->name, V3D_MAX_NAME_LEN);
-    CHECK_MEM(dst->name);
-    vec3f_copy(dst->ambrefl, src->ambrefl);
-    vec3f_copy(dst->diffuse, src->diffuse);
-    vec3f_copy(dst->specular, src->specular);
-    dst->ambrefl_map = _strndup(src->ambrefl_map, V3D_MAX_PATH_LEN);
-    CHECK_MEM(dst->ambrefl_map);
-    dst->diffuse_map = _strndup(src->diffuse_map, V3D_MAX_PATH_LEN);
-    CHECK_MEM(dst->diffuse_map);
-    dst->specular_map = _strndup(src->specular_map, V3D_MAX_PATH_LEN);
-    CHECK_MEM(dst->specular_map);
-    dst->bump_map = _strndup(src->bump_map, V3D_MAX_PATH_LEN);
-    CHECK_MEM(dst->bump_map);
-    dst->refl_map = _strndup(src->refl_map, V3D_MAX_PATH_LEN);
-    CHECK_MEM(dst->refl_map);
+    if (src->name)
+    {
+        dst->name = _strndup(src->name, V3D_MAX_NAME_LEN);
+        CHECK_MEM(dst->name);
+    }
+    vec4f_copy(dst->ambrefl, src->ambrefl);
+    vec4f_copy(dst->diffuse, src->diffuse);
+    vec4f_copy(dst->specular, src->specular);
+    if (src->ambrefl_map)
+    {
+        dst->ambrefl_map = _strndup(src->ambrefl_map, V3D_MAX_PATH_LEN);
+        CHECK_MEM(dst->ambrefl_map);
+    }
+    if (src->diffuse_map)
+    {
+        dst->diffuse_map = _strndup(src->diffuse_map, V3D_MAX_PATH_LEN);
+        CHECK_MEM(dst->diffuse_map);
+    }
+    if (src->specular_map)
+    {
+        dst->specular_map = _strndup(src->specular_map, V3D_MAX_PATH_LEN);
+        CHECK_MEM(dst->specular_map);
+    }
+    if (src->bump_map)
+    {
+        dst->bump_map = _strndup(src->bump_map, V3D_MAX_PATH_LEN);
+        CHECK_MEM(dst->bump_map);
+    }
+    if (src->refl_map)
+    {
+        dst->refl_map = _strndup(src->refl_map, V3D_MAX_PATH_LEN);
+        CHECK_MEM(dst->refl_map);
+    }
 
 error:;
 }
@@ -95,8 +119,7 @@ void raw_mesh_init(raw_mesh_t *this)
     this->verts = NULL;
     this->norms = NULL;
     this->txcds = NULL;
-    this->mat = malloc(sizeof(raw_material_t));
-    raw_material_init(this->mat);
+    this->mat = NULL;
 
 error:;
 }
@@ -111,10 +134,14 @@ void raw_mesh_term(raw_mesh_t *this)
     free(this->verts);
     free(this->norms);
     free(this->txcds);
-    free(this->mat);
     this->verts = NULL;
     this->norms = NULL;
     this->txcds = NULL;
+    if (this->mat)
+    {
+        raw_material_term(this->mat);
+    }
+    free(this->mat);
     this->mat = NULL;
 
 error:;
@@ -253,9 +280,12 @@ void material_init(material_t *this)
     CHECK(this, "this is NULL");
 
     this->name = NULL;
-    vec3f_init(this->ambrefl, 0.0f);
-    vec3f_init(this->diffuse, 0.0f);
-    vec3f_init(this->specular, 0.0f);
+    vec4f_init(this->ambrefl, 0.0f);
+    this->ambrefl[3] = 1.0f;
+    vec4f_init(this->diffuse, 0.0f);
+    this->diffuse[3] = 1.0f;
+    vec4f_init(this->specular, 0.0f);
+    this->specular[3] = 1.0f;
     this->dissolve = 0.0f;
     this->ambrefl_map = 0;
     this->diffuse_map = 0;
@@ -272,9 +302,12 @@ void material_term(material_t *this)
 
     free(this->name);
     this->name = NULL;
-    vec3f_init(this->ambrefl, 0.0f);
-    vec3f_init(this->diffuse, 0.0f);
-    vec3f_init(this->specular, 0.0f);
+    vec4f_init(this->ambrefl, 0.0f);
+    this->ambrefl[3] = 1.0f;
+    vec4f_init(this->diffuse, 0.0f);
+    this->diffuse[3] = 1.0f;
+    vec4f_init(this->specular, 0.0f);
+    this->specular[3] = 1.0f;
     this->dissolve = 0.0f;
     glDeleteTextures(1, &this->ambrefl_map);
     glDeleteTextures(1, &this->diffuse_map);
@@ -293,12 +326,13 @@ error:;
 bool material_load_from_raw(material_t *this, raw_material_t *raw)
 {
     CHECK(this, "this is NULL");
+    CHECK(raw, "raw is NULL");
 
     this->name = _strndup(raw->name, V3D_MAX_NAME_LEN);
-    //CHECK_MEM(this->name);
-    vec3f_copy(this->ambrefl, raw->ambrefl);
-    vec3f_copy(this->diffuse, raw->diffuse);
-    vec3f_copy(this->specular, raw->specular);
+    CHECK_MEM(this->name);
+    vec4f_copy(this->ambrefl, raw->ambrefl);
+    vec4f_copy(this->diffuse, raw->diffuse);
+    vec4f_copy(this->specular, raw->specular);
     this->dissolve = raw->dissolve;
     if (raw->ambrefl_map)
     {
@@ -359,6 +393,7 @@ bool mesh_load_from_raw(mesh_t *this, raw_mesh_t *raw)
 
     this->count = raw->count;
     this->mat = malloc(sizeof(material_t));
+    material_init(this->mat);
     material_load_from_raw(this->mat, raw->mat);
 
     glGenVertexArrays(1, &this->vao);
@@ -472,6 +507,8 @@ bool model_load_from_raw(model_t *this, raw_model_t *raw, GLuint shader_id, shad
         CHECK(mesh_load_from_raw(&this->meshes[i], &raw->meshes[i]), "Failed to load mesh");
     }
 
+    this->mtl_diffuse_loc = glGetUniformLocation(this->_shader_id, "u_mtl_diffuse");
+
     return true;
 
 error:
@@ -482,6 +519,8 @@ error:
 void model_draw(model_t *this)
 {
     int i;
+    mesh_t *mesh = NULL;
+    material_t *mat = NULL;
 
     CHECK(this, "this is NULL");
 
@@ -494,8 +533,17 @@ void model_draw(model_t *this)
 
     for (i = 0; i < this->count; ++i)
     {
-        glBindVertexArray(this->meshes[i].vao);
-        glDrawArrays(GL_TRIANGLES, 0, this->meshes[i].count);
+        mesh = &this->meshes[i];
+        mat = mesh->mat;
+
+        if (mat)
+        {
+            glUniform4fv(this->mtl_diffuse_loc, 1, mat->diffuse);
+            glBindTexture(GL_TEXTURE_2D, mat->diffuse_map);
+        }
+
+        glBindVertexArray(mesh->vao);
+        glDrawArrays(GL_TRIANGLES, 0, mesh->count);
     }
 
 error:;

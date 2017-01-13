@@ -13,9 +13,9 @@
 typedef struct raw_material
 {
     char *name;
-    vec3f_t ambrefl;
-    vec3f_t diffuse;
-    vec3f_t specular;
+    vec4f_t ambrefl;
+    vec4f_t diffuse;
+    vec4f_t specular;
     float dissolve;
     char *ambrefl_map;
     char *diffuse_map;
@@ -61,9 +61,9 @@ bool raw_model_load_from_file(raw_model_t *this, const char *filename, const cha
 typedef struct material
 {
     char *name;
-    vec3f_t ambrefl;
-    vec3f_t diffuse;
-    vec3f_t specular;
+    vec4f_t ambrefl;
+    vec4f_t diffuse;
+    vec4f_t specular;
     float dissolve;
     GLuint ambrefl_map;
     GLuint diffuse_map;
@@ -95,6 +95,9 @@ typedef struct model
     mesh_t *meshes;
     GLuint _shader_id;
     shader_data_t *_shader_data;
+
+    GLuint mtl_diffuse_loc;
+
 } model_t;
 
 void model_init(model_t *this);

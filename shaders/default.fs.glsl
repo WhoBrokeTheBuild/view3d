@@ -36,6 +36,6 @@ void main()
     float RdotV = max(dot(R, V), 0);
     vec4 specular = pow(RdotV, mtl_shininess) * light_color * mtl_specular;
 
-    o_color = (emissive + ambient + diffuse + specular) * u_mtl_diffuse * texture(u_tex_diffuse, _texcoord);
-    //o_color = vec4(1.0f);
+    o_color = (emissive + ambient + diffuse + specular) * (u_mtl_diffuse + texture(u_tex_diffuse, _texcoord));
+    //o_color = vec4(_texcoord.x, _texcoord.y, 0.0f, 1.0f);
 }

@@ -33,7 +33,11 @@ int raw_material_load_from_mtl(raw_material_t **materials, const char *dir, cons
 
         if (mat)
         {
-            if (strncmp(line, "map_Kd", 6) == 0)
+            if (strncmp(line, "Kd", 2) == 0)
+            {
+                sscanf(line, "%*s %f %f %f", &mat->diffuse[0], &mat->diffuse[1], &mat->diffuse[2]);
+            }
+            else if (strncmp(line, "map_Kd", 6) == 0)
             {
                 if (dir)
                 {
@@ -335,6 +339,17 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
         }
         else if (strncmp(line, "usemtl", 6) == 0)
         {
+            for (i = 0; i < material_count; ++i)
+            {
+                if (strcmp(materials[i].name, line + 7) == 0)
+                {
+                    printf("Setting material for %s to %s\n", mesh->name, materials[i].name);
+                    mesh->mat = malloc(sizeof(raw_material_t));
+                    raw_material_init(mesh->mat);
+                    raw_material_copy(mesh->mat, &materials[i]);
+                    break;
+                }
+            }
         }
 
         if (all_verts_index >= all_verts_cap - 1)
@@ -398,7 +413,7 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
     fclose(fp);
     free(line);
 
-    LOG_INFO("Loaded %s: Verts %d, Norms %d, Tex Coords %d\n", filename, verts_loaded, norms_loaded, txcds_loaded);
+    LOG_INFO("Loaded %s: Verts %d, Norms %d, Tex Coords %d", filename, verts_loaded, norms_loaded, txcds_loaded);
 
     return true;
 
