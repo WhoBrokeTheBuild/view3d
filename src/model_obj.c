@@ -1,4 +1,5 @@
 #include <model_obj.h>
+#include <sys/types.h>
 #include <stdio.h>
 
 const int OBJ_DEF_ARR_SIZE = 10;
@@ -396,8 +397,9 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
     if (mesh_txcds_index == 0)
     {
         free(mesh->txcds);
-        mesh->txcds = 0;
+        mesh->txcds = NULL;
     }
+    else
     {
         mesh->txcds = realloc(mesh->txcds, sizeof(float) * mesh_txcds_index * 2);
     }

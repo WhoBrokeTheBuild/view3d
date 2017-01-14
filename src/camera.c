@@ -1,7 +1,7 @@
 #include "camera.h"
 #include <math.h>
 
-void camera_init(camera_t *this, float width, float height, float near, float far, float fov)
+void camera_init(camera_t *this, float width, float height, float vnear, float vfar, float fov)
 {
     mat4x4_init(this->proj, 1.0f);
     mat4x4_init(this->view, 1.0f);
@@ -9,8 +9,8 @@ void camera_init(camera_t *this, float width, float height, float near, float fa
     this->_invalid_proj = true;
     this->_invalid_view = true;
     this->_aspect = width / height;
-    this->_near = near;
-    this->_far = far;
+    this->_vnear = vnear;
+    this->_vfar = vfar;
     this->_fov = fov;
     quat_init(this->_orient);
 }
@@ -46,7 +46,7 @@ void camera_update(camera_t *this)
     if (this->_invalid_proj)
     {
         //LOG_INFO("Recalculating Projection Matrix");
-        glmm_perspective(this->proj, this->_aspect, this->_near, this->_far, this->_fov);
+        glmm_perspective(this->proj, this->_aspect, this->_vnear, this->_vfar, this->_fov);
         this->_invalid_proj = false;
     }
 }
@@ -81,9 +81,9 @@ void camera_set_fov(camera_t *this, float fov)
     this->_invalid_proj = true;
 }
 
-void camera_set_near_far(camera_t *this, float near, float far)
+void camera_set_vnear_vfar(camera_t *this, float vnear, float vfar)
 {
-    this->_near = near;
-    this->_far = far;
+    this->_vnear = vnear;
+    this->_vfar = vfar;
     this->_invalid_proj = true;
 }

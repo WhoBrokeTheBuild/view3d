@@ -80,10 +80,11 @@ GLuint shader_load(const char *filename, GLenum shader_type)
     GLuint shader = 0;
     char *shader_str = NULL;
     FILE *fp = NULL;
+    size_t bytes_read = 0;
 
     LOG_INFO("Loading Shader from '%s'", filename);
 
-    fp = fopen(filename, "r");
+    fp = fopen(filename, "rb");
     CHECK(fp, "Failed to open shader '%s'", filename);
 
     long int file_size = fsize(fp);
@@ -93,7 +94,7 @@ GLuint shader_load(const char *filename, GLenum shader_type)
     shader_str = malloc((file_size + 1) * sizeof(char));
     CHECK_MEM(shader_str);
 
-    size_t bytes_read = fread(shader_str, 1, file_size, fp);
+    bytes_read = fread(shader_str, 1, file_size, fp);
     CHECK(bytes_read == file_size, "Failed to read whole shader file '%s' read %zu/%ld", filename,
         bytes_read, file_size);
     shader_str[file_size] = '\0';

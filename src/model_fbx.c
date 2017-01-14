@@ -499,7 +499,7 @@ fbx_node_t *fbx_node_find(fbx_node_t *parent, const char *in_id, int skip)
 
     CHECK(parent, "parent is NULL");
 
-    id = strdup(in_id);
+    id = _strdup(in_id);
 
     pch = strchr(id, '.');
     if (pch)

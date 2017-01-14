@@ -29,7 +29,7 @@ bool image_load_png(image_t *this, const char *filename)
     png_byte header[8];
     png_structp png_ptr = NULL;
     png_infop info_ptr = NULL;
-    png_infop end_ptr = NULL;
+    png_infop end_info = NULL;
     int num_passes = 0;
     int rowbytes = 0;
     png_bytep *row_pointers = NULL;
@@ -49,10 +49,10 @@ bool image_load_png(image_t *this, const char *filename)
     info_ptr = png_create_info_struct(png_ptr);
     CHECK(info_ptr, "png_create_info_struct failed");
 
-    end_ptr = png_create_info_struct(png_ptr);
-    CHECK(end_ptr, "png_create_info_struct failed");
+    end_info = png_create_info_struct(png_ptr);
+    CHECK(end_info, "png_create_info_struct failed");
 
-    CHECK(setjmp(png_jmpbuf(png_ptr)), "Error during init_io");
+    CHECK(!setjmp(png_jmpbuf(png_ptr)), "Error during init_io");
 
     png_init_io(png_ptr, fp);
     png_set_sig_bytes(png_ptr, 8);
@@ -67,13 +67,13 @@ bool image_load_png(image_t *this, const char *filename)
     num_passes = png_set_interlace_handling(png_ptr);
     png_read_update_info(png_ptr, info_ptr);
 
-    CHECK(setjmp(png_jmpbuf(png_ptr)), "Error during read_image");
+    CHECK(!setjmp(png_jmpbuf(png_ptr)), "Error during read_image");
 
     rowbytes = png_get_rowbytes(png_ptr, info_ptr);
     // glTexImage2d requires rows to be 4-byte aligned
     rowbytes += 3 - ((rowbytes - 1) % 4);
 
-    this->data = malloc(rowbytes * this->height * sizeof(png_byte));
+    this->data = malloc(rowbytes * this->height * sizeof(png_byte) + 15);
     CHECK_MEM(this->data);
 
     row_pointers = malloc(this->height * sizeof(png_bytep));
@@ -86,7 +86,7 @@ bool image_load_png(image_t *this, const char *filename)
 
     png_read_image(png_ptr, row_pointers);
 
-    png_destroy_read_struct(&png_ptr, &info_ptr, &end_ptr);
+    png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
     free(row_pointers);
     fclose(fp);
 
@@ -94,7 +94,7 @@ bool image_load_png(image_t *this, const char *filename)
 
 error:
 
-    png_destroy_read_struct(&png_ptr, &info_ptr, &end_ptr);
+    png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
     free(row_pointers);
     fclose(fp);
 
@@ -108,13 +108,15 @@ GLuint load_texture(const char *filename)
 
     CHECK(filename, "filename is NULL");
 
+    LOG_INFO("Loading texture from '%s'", filename);
+
     image_init(&img);
     CHECK(image_load_png(&img, filename), "Failed to load '%s'", filename);
 
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.width, img.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img.data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img.width, img.height, 0, GL_RGB, GL_UNSIGNED_BYTE, img.data);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

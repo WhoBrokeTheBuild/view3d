@@ -338,21 +338,21 @@ bool material_load_from_raw(material_t *this, raw_material_t *raw)
     {
         this->ambrefl_map = load_texture(raw->ambrefl_map);
     }
-    if (raw->ambrefl_map)
+    if (raw->diffuse_map)
     {
-        this->ambrefl_map = load_texture(raw->ambrefl_map);
+        this->diffuse_map = load_texture(raw->diffuse_map);
     }
-    if (raw->ambrefl_map)
+    if (raw->specular_map)
     {
-        this->ambrefl_map = load_texture(raw->ambrefl_map);
+        this->specular_map = load_texture(raw->specular_map);
     }
-    if (raw->ambrefl_map)
+    if (raw->bump_map)
     {
-        this->ambrefl_map = load_texture(raw->ambrefl_map);
+        this->bump_map = load_texture(raw->bump_map);
     }
-    if (raw->ambrefl_map)
+    if (raw->refl_map)
     {
-        this->ambrefl_map = load_texture(raw->ambrefl_map);
+        this->refl_map = load_texture(raw->refl_map);
     }
 
     return true;
@@ -368,8 +368,7 @@ void mesh_init(mesh_t *this)
 
     this->count = 0;
     this->vao = 0;
-    this->mat = malloc(sizeof(material_t));
-    material_init(this->mat);
+    this->mat = NULL;
 
 error:;
 }
@@ -392,9 +391,12 @@ bool mesh_load_from_raw(mesh_t *this, raw_mesh_t *raw)
     CHECK(this, "this is NULL");
 
     this->count = raw->count;
-    this->mat = malloc(sizeof(material_t));
-    material_init(this->mat);
-    material_load_from_raw(this->mat, raw->mat);
+    if (raw->mat)
+    {
+        this->mat = malloc(sizeof(material_t));
+        material_init(this->mat);
+        material_load_from_raw(this->mat, raw->mat);
+    }
 
     glGenVertexArrays(1, &this->vao);
     glBindVertexArray(this->vao);
@@ -506,7 +508,6 @@ bool model_load_from_raw(model_t *this, raw_model_t *raw, GLuint shader_id, shad
         mesh_init(&this->meshes[i]);
         CHECK(mesh_load_from_raw(&this->meshes[i], &raw->meshes[i]), "Failed to load mesh");
     }
-
     this->mtl_diffuse_loc = glGetUniformLocation(this->_shader_id, "u_mtl_diffuse");
 
     return true;
