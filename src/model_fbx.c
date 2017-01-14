@@ -563,7 +563,7 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
 {
     int i;
     FILE *fp = NULL;
-    char *buffer = NULL;
+    uint8_t *buffer = NULL;
     size_t buffer_len = 0;
     ssize_t read = 0;
     uint32_t version = 0;
@@ -583,14 +583,11 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
     fp = fopen(filename, "rb");
     CHECK(fp, "Failed to open file '%s'", filename);
 
-    fseek(fp, 0, SEEK_END);
-    buffer_len = ftell(fp);
-    rewind(fp);
+    buffer_len = fsize(fp);
+    buffer = (uint8_t *)malloc(buffer_len * sizeof(char));
+    CHECK_MEM(buffer);
 
-    buffer = (char *)malloc(buffer_len * sizeof(char));
-    CHECK(buffer, "Failed to allocate memory for '%s', size %zu", filename, buffer_len);
-
-    read = fread(buffer, buffer_len, sizeof(char), fp);
+    read = fread(buffer, buffer_len, 1, fp);
     CHECK(read > 0, "Failed to read file '%s'", filename);
 
     fclose(fp);

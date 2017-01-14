@@ -29,7 +29,7 @@
 
 #define SENTINEL(M, ...)           \
     {                              \
-        log_err(M, ##__VA_ARGS__); \
+        LOG_ERR(M, ##__VA_ARGS__); \
         errno = 0;                 \
         goto error;                \
     }

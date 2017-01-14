@@ -1,6 +1,6 @@
 #include <model_obj.h>
-#include <sys/types.h>
 #include <stdio.h>
+#include <sys/types.h>
 
 const int OBJ_DEF_ARR_SIZE = 10;
 
@@ -38,7 +38,19 @@ int raw_material_load_from_mtl(raw_material_t **materials, const char *dir, cons
             {
                 sscanf(line, "%*s %f %f %f", &mat->diffuse[0], &mat->diffuse[1], &mat->diffuse[2]);
             }
-            else if (strncmp(line, "map_Kd", 6) == 0)
+            else if (strncmp(line, "Ka", 2) == 0)
+            {
+                sscanf(line, "%*s %f %f %f", &mat->ambient[0], &mat->ambient[1], &mat->ambient[2]);
+            }
+            else if (strncmp(line, "Ks", 2) == 0)
+            {
+                sscanf(line, "%*s %f %f %f", &mat->specular[0], &mat->specular[1], &mat->specular[2]);
+            }
+            else if (strncmp(line, "Ns", 2) == 0)
+            {
+                sscanf(line, "%*s %f", &mat->shininess);
+            }
+            else if (strncmp(line, "map_Kd ", 7) == 0)
             {
                 if (dir)
                 {
@@ -344,7 +356,6 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
             {
                 if (strcmp(materials[i].name, line + 7) == 0)
                 {
-                    printf("Setting material for %s to %s\n", mesh->name, materials[i].name);
                     mesh->mat = malloc(sizeof(raw_material_t));
                     raw_material_init(mesh->mat);
                     raw_material_copy(mesh->mat, &materials[i]);

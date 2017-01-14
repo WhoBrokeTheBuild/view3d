@@ -52,7 +52,7 @@ void render_cb()
     camera_update(&g_cam);
 
     vec3f_t axis = { 0.0f, 1.0f, 0.0f };
-    mat4x4_rotate(g_model_mat, GLMM_RAD(1.0f), axis);
+    mat4x4_rotate(g_model_mat, GLMM_RAD(0.5f), axis);
 
     mat4x4_copy(g_render_data.model, g_model_mat);
     mat4x4_mul(g_render_data.mvp, g_cam.proj, g_cam.view);
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 
     camera_init(&g_cam, START_WIDTH, START_HEIGHT, 0.01f, 100.0f, GLMM_RAD(45.0f));
 
-    vec3f_t eye = { 3.0f, 3.0f, 3.0f };
+    vec3f_t eye = { 1.3f, 1.3f, 1.3f };
     vec3f_t center = { 0.0f, 0.0f, 0.0f };
     vec3f_t up = { 0.0f, 1.0f, 0.0f };
     camera_look_at(&g_cam, eye, center, up);

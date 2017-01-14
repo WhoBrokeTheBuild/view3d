@@ -4,7 +4,7 @@
 #include <model_obj.h>
 #include <string.h>
 
-typedef struct
+typedef struct model_loader
 {
     const char *ext;
     bool (*func)(raw_model_t *, const char *, const char *);
@@ -23,14 +23,15 @@ void raw_material_init(raw_material_t *this)
     CHECK(this, "this is NULL");
 
     this->name = NULL;
-    vec4f_init(this->ambrefl, 0.0f);
-    this->ambrefl[3] = 1.0f;
+    vec4f_init(this->ambient, 0.0f);
+    this->ambient[3] = 1.0f;
     vec4f_init(this->diffuse, 0.0f);
     this->diffuse[3] = 1.0f;
     vec4f_init(this->specular, 0.0f);
     this->specular[3] = 1.0f;
-    this->dissolve = 0;
-    this->ambrefl_map = NULL;
+    this->shininess = 0.0f;
+    this->dissolve = 0.0f;
+    this->ambient_map = NULL;
     this->diffuse_map = NULL;
     this->specular_map = NULL;
     this->bump_map = NULL;
@@ -45,19 +46,20 @@ void raw_material_term(raw_material_t *this)
 
     free(this->name);
     this->name = NULL;
-    vec4f_init(this->ambrefl, 0.0f);
-    this->ambrefl[3] = 1.0f;
+    vec4f_init(this->ambient, 0.0f);
+    this->ambient[3] = 1.0f;
     vec4f_init(this->diffuse, 0.0f);
     this->diffuse[3] = 1.0f;
     vec4f_init(this->specular, 0.0f);
     this->specular[3] = 1.0f;
-    this->dissolve = 0;
-    free(this->ambrefl_map);
+    this->shininess = 0.0f;
+    this->dissolve = 0.0f;
+    free(this->ambient_map);
     free(this->diffuse_map);
     free(this->specular_map);
     free(this->bump_map);
     free(this->refl_map);
-    this->ambrefl_map = NULL;
+    this->ambient_map = NULL;
     this->diffuse_map = NULL;
     this->specular_map = NULL;
     this->bump_map = NULL;
@@ -78,13 +80,15 @@ void raw_material_copy(raw_material_t *dst, raw_material_t *src)
         dst->name = _strndup(src->name, V3D_MAX_NAME_LEN);
         CHECK_MEM(dst->name);
     }
-    vec4f_copy(dst->ambrefl, src->ambrefl);
+    vec4f_copy(dst->ambient, src->ambient);
     vec4f_copy(dst->diffuse, src->diffuse);
     vec4f_copy(dst->specular, src->specular);
-    if (src->ambrefl_map)
+    dst->dissolve = src->dissolve;
+    dst->shininess = src->shininess;
+    if (src->ambient_map)
     {
-        dst->ambrefl_map = _strndup(src->ambrefl_map, V3D_MAX_PATH_LEN);
-        CHECK_MEM(dst->ambrefl_map);
+        dst->ambient_map = _strndup(src->ambient_map, V3D_MAX_PATH_LEN);
+        CHECK_MEM(dst->ambient_map);
     }
     if (src->diffuse_map)
     {
@@ -280,14 +284,15 @@ void material_init(material_t *this)
     CHECK(this, "this is NULL");
 
     this->name = NULL;
-    vec4f_init(this->ambrefl, 0.0f);
-    this->ambrefl[3] = 1.0f;
+    vec4f_init(this->ambient, 0.0f);
+    this->ambient[3] = 1.0f;
     vec4f_init(this->diffuse, 0.0f);
     this->diffuse[3] = 1.0f;
     vec4f_init(this->specular, 0.0f);
     this->specular[3] = 1.0f;
     this->dissolve = 0.0f;
-    this->ambrefl_map = 0;
+    this->shininess = 0.0f;
+    this->ambient_map = 0;
     this->diffuse_map = 0;
     this->specular_map = 0;
     this->bump_map = 0;
@@ -302,19 +307,20 @@ void material_term(material_t *this)
 
     free(this->name);
     this->name = NULL;
-    vec4f_init(this->ambrefl, 0.0f);
-    this->ambrefl[3] = 1.0f;
+    vec4f_init(this->ambient, 0.0f);
+    this->ambient[3] = 1.0f;
     vec4f_init(this->diffuse, 0.0f);
     this->diffuse[3] = 1.0f;
     vec4f_init(this->specular, 0.0f);
     this->specular[3] = 1.0f;
     this->dissolve = 0.0f;
-    glDeleteTextures(1, &this->ambrefl_map);
+    this->shininess = 0.0f;
+    glDeleteTextures(1, &this->ambient_map);
     glDeleteTextures(1, &this->diffuse_map);
     glDeleteTextures(1, &this->specular_map);
     glDeleteTextures(1, &this->bump_map);
     glDeleteTextures(1, &this->refl_map);
-    this->ambrefl_map = 0;
+    this->ambient_map = 0;
     this->diffuse_map = 0;
     this->specular_map = 0;
     this->bump_map = 0;
@@ -330,28 +336,34 @@ bool material_load_from_raw(material_t *this, raw_material_t *raw)
 
     this->name = _strndup(raw->name, V3D_MAX_NAME_LEN);
     CHECK_MEM(this->name);
-    vec4f_copy(this->ambrefl, raw->ambrefl);
+    vec4f_copy(this->ambient, raw->ambient);
     vec4f_copy(this->diffuse, raw->diffuse);
     vec4f_copy(this->specular, raw->specular);
     this->dissolve = raw->dissolve;
-    if (raw->ambrefl_map)
+    this->shininess = raw->shininess;
+    if (raw->ambient_map)
     {
-        this->ambrefl_map = load_texture(raw->ambrefl_map);
+        glActiveTexture(GL_TEXTURE0);
+        this->ambient_map = load_texture(raw->ambient_map);
     }
     if (raw->diffuse_map)
     {
+        glActiveTexture(GL_TEXTURE1);
         this->diffuse_map = load_texture(raw->diffuse_map);
     }
     if (raw->specular_map)
     {
+        glActiveTexture(GL_TEXTURE2);
         this->specular_map = load_texture(raw->specular_map);
     }
     if (raw->bump_map)
     {
+        glActiveTexture(GL_TEXTURE3);
         this->bump_map = load_texture(raw->bump_map);
     }
     if (raw->refl_map)
     {
+        glActiveTexture(GL_TEXTURE4);
         this->refl_map = load_texture(raw->refl_map);
     }
 
@@ -508,7 +520,14 @@ bool model_load_from_raw(model_t *this, raw_model_t *raw, GLuint shader_id, shad
         mesh_init(&this->meshes[i]);
         CHECK(mesh_load_from_raw(&this->meshes[i], &raw->meshes[i]), "Failed to load mesh");
     }
+
+    this->mtl_shininess_loc = glGetUniformLocation(this->_shader_id, "u_mtl_shininess");
+    this->mtl_ambient_loc = glGetUniformLocation(this->_shader_id, "u_mtl_ambient");
+    this->tex_ambient_loc = glGetUniformLocation(this->_shader_id, "u_tex_ambient");
     this->mtl_diffuse_loc = glGetUniformLocation(this->_shader_id, "u_mtl_diffuse");
+    this->tex_diffuse_loc = glGetUniformLocation(this->_shader_id, "u_tex_diffuse");
+    this->mtl_specular_loc = glGetUniformLocation(this->_shader_id, "u_mtl_specular");
+    this->tex_specular_loc = glGetUniformLocation(this->_shader_id, "u_tex_specular");
 
     return true;
 
@@ -539,8 +558,32 @@ void model_draw(model_t *this)
 
         if (mat)
         {
+            glUniform1f(this->mtl_shininess_loc, mat->shininess);
+            glUniform4fv(this->mtl_ambient_loc, 1, mat->ambient);
             glUniform4fv(this->mtl_diffuse_loc, 1, mat->diffuse);
-            glBindTexture(GL_TEXTURE_2D, mat->diffuse_map);
+            glUniform4fv(this->mtl_specular_loc, 1, mat->specular);
+
+            glUniform1i(this->tex_ambient_loc, 0);
+            glUniform1i(this->tex_diffuse_loc, 1);
+            glUniform1i(this->tex_specular_loc, 2);
+
+            if (mat->ambient_map)
+            {
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, mat->ambient_map);
+            }
+
+            if (mat->diffuse_map)
+            {
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, mat->diffuse_map);
+            }
+
+            if (mat->specular_map)
+            {
+                glActiveTexture(GL_TEXTURE2);
+                glBindTexture(GL_TEXTURE_2D, mat->specular_map);
+            }
         }
 
         glBindVertexArray(mesh->vao);
