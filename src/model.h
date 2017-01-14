@@ -105,6 +105,7 @@ typedef struct model
     GLuint tex_ambient_loc;
     GLuint tex_diffuse_loc;
     GLuint tex_specular_loc;
+    GLuint tex_bump_loc;
 
 } model_t;
 

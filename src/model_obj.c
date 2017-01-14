@@ -50,7 +50,16 @@ int raw_material_load_from_mtl(raw_material_t **materials, const char *dir, cons
             {
                 sscanf(line, "%*s %f", &mat->shininess);
             }
-            else if (strncmp(line, "map_Kd ", 7) == 0)
+            else if (strncmp(line, "map_Ka", 6) == 0)
+            {
+                if (dir)
+                {
+                    strcpy(path, dir);
+                }
+                strcpy(path + strlen(dir), line + 7);
+                mat->ambient_map = _strndup(path, V3D_MAX_PATH_LEN);
+            }
+            else if (strncmp(line, "map_Kd", 6) == 0)
             {
                 if (dir)
                 {
@@ -58,6 +67,24 @@ int raw_material_load_from_mtl(raw_material_t **materials, const char *dir, cons
                 }
                 strcpy(path + strlen(dir), line + 7);
                 mat->diffuse_map = _strndup(path, V3D_MAX_PATH_LEN);
+            }
+            else if (strncmp(line, "map_Ks", 6) == 0)
+            {
+                if (dir)
+                {
+                    strcpy(path, dir);
+                }
+                strcpy(path + strlen(dir), line + 7);
+                mat->specular_map = _strndup(path, V3D_MAX_PATH_LEN);
+            }
+            else if (strncmp(line, "bump", 4) == 0)
+            {
+                if (dir)
+                {
+                    strcpy(path, dir);
+                }
+                strcpy(path + strlen(dir), line + 5);
+                mat->bump_map = _strndup(path, V3D_MAX_PATH_LEN);
             }
         }
 

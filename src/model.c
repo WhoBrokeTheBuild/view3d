@@ -528,6 +528,7 @@ bool model_load_from_raw(model_t *this, raw_model_t *raw, GLuint shader_id, shad
     this->tex_diffuse_loc = glGetUniformLocation(this->_shader_id, "u_tex_diffuse");
     this->mtl_specular_loc = glGetUniformLocation(this->_shader_id, "u_mtl_specular");
     this->tex_specular_loc = glGetUniformLocation(this->_shader_id, "u_tex_specular");
+    this->tex_bump_loc = glGetUniformLocation(this->_shader_id, "u_tex_bump");
 
     return true;
 
@@ -566,6 +567,7 @@ void model_draw(model_t *this)
             glUniform1i(this->tex_ambient_loc, 0);
             glUniform1i(this->tex_diffuse_loc, 1);
             glUniform1i(this->tex_specular_loc, 2);
+            glUniform1i(this->tex_bump_loc, 3);
 
             if (mat->ambient_map)
             {
@@ -582,6 +584,12 @@ void model_draw(model_t *this)
             if (mat->specular_map)
             {
                 glActiveTexture(GL_TEXTURE2);
+                glBindTexture(GL_TEXTURE_2D, mat->specular_map);
+            }
+
+            if (mat->bump_map)
+            {
+                glActiveTexture(GL_TEXTURE3);
                 glBindTexture(GL_TEXTURE_2D, mat->specular_map);
             }
         }
