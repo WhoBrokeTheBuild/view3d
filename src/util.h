@@ -3,8 +3,6 @@
 
 #include <string.h>
 #include <view3d.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 long int fsize(FILE *fp);
 
