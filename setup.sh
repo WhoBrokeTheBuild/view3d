@@ -18,7 +18,8 @@ case $distro in
             freeglut-devel \
             glew-devel \
             check-devel \
-            zlib-devel
+            zlib-devel \
+	    libpng-devel
         ;;
     centos)
         sudo yum install -y \
@@ -27,7 +28,8 @@ case $distro in
             freeglut-devel \
             glew-devel \
             check-devel \
-            zlib-devel
+            zlib-devel \
+	    libpng-devel
         ;;
     * )
         echo "Unsupported Distro"

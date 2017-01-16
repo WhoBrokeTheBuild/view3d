@@ -343,27 +343,22 @@ bool material_load_from_raw(material_t *this, raw_material_t *raw)
     this->shininess = raw->shininess;
     if (raw->ambient_map)
     {
-        glActiveTexture(GL_TEXTURE0);
         this->ambient_map = load_texture(raw->ambient_map);
     }
     if (raw->diffuse_map)
     {
-        glActiveTexture(GL_TEXTURE1);
         this->diffuse_map = load_texture(raw->diffuse_map);
     }
     if (raw->specular_map)
     {
-        glActiveTexture(GL_TEXTURE2);
         this->specular_map = load_texture(raw->specular_map);
     }
     if (raw->bump_map)
     {
-        glActiveTexture(GL_TEXTURE3);
         this->bump_map = load_texture(raw->bump_map);
     }
     if (raw->refl_map)
     {
-        glActiveTexture(GL_TEXTURE4);
         this->refl_map = load_texture(raw->refl_map);
     }
 
@@ -557,6 +552,11 @@ void model_draw(model_t *this)
         mesh = &this->meshes[i];
         mat = mesh->mat;
 
+        glUniform1i(this->tex_ambient_loc, -1);
+        glUniform1i(this->tex_diffuse_loc, -1);
+        glUniform1i(this->tex_specular_loc, -1);
+        glUniform1i(this->tex_bump_loc, -1);
+
         if (mat)
         {
             glUniform1f(this->mtl_shininess_loc, mat->shininess);
@@ -564,33 +564,32 @@ void model_draw(model_t *this)
             glUniform4fv(this->mtl_diffuse_loc, 1, mat->diffuse);
             glUniform4fv(this->mtl_specular_loc, 1, mat->specular);
 
-            glUniform1i(this->tex_ambient_loc, 0);
-            glUniform1i(this->tex_diffuse_loc, 1);
-            glUniform1i(this->tex_specular_loc, 2);
-            glUniform1i(this->tex_bump_loc, 3);
-
             if (mat->ambient_map)
             {
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, mat->ambient_map);
+                glUniform1i(this->tex_ambient_loc, 0);
             }
 
             if (mat->diffuse_map)
             {
                 glActiveTexture(GL_TEXTURE1);
                 glBindTexture(GL_TEXTURE_2D, mat->diffuse_map);
+                glUniform1i(this->tex_diffuse_loc, 1);
             }
 
             if (mat->specular_map)
             {
                 glActiveTexture(GL_TEXTURE2);
                 glBindTexture(GL_TEXTURE_2D, mat->specular_map);
+                glUniform1i(this->tex_specular_loc, 2);
             }
 
             if (mat->bump_map)
             {
                 glActiveTexture(GL_TEXTURE3);
                 glBindTexture(GL_TEXTURE_2D, mat->specular_map);
+                glUniform1i(this->tex_bump_loc, 3);
             }
         }
 

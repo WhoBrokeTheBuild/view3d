@@ -52,7 +52,7 @@ void render_cb()
     camera_update(&g_cam);
 
     vec3f_t axis = { 0.0f, 1.0f, 0.0f };
-    mat4x4_rotate(g_model_mat, GLMM_RAD(0.5f), axis);
+    mat4x4_rotate(g_model_mat, GLMM_RAD(1.0f), axis);
 
     mat4x4_copy(g_render_data.model, g_model_mat);
     mat4x4_mul(g_render_data.mvp, g_cam.proj, g_cam.view);
@@ -134,10 +134,10 @@ int main(int argc, char **argv)
         goto error;
     }
 
-    camera_init(&g_cam, START_WIDTH, START_HEIGHT, 1.0f, 1000.0f, GLMM_RAD(45.0f));
+    camera_init(&g_cam, START_WIDTH, START_HEIGHT, 0.001f, 1000.0f, GLMM_RAD(45.0f));
 
-    vec3f_t eye = { 150.0f, 150.0f, 150.0f };
-    vec3f_t center = { 0.0f, 100.0f, 0.0f };
+    vec3f_t eye = { 1.5f, 1.5f, 1.5f };
+    vec3f_t center = { 0.0f, 0.2f, 0.0f };
     vec3f_t up = { 0.0f, 1.0f, 0.0f };
     camera_look_at(&g_cam, eye, center, up);
 
@@ -146,6 +146,9 @@ int main(int argc, char **argv)
     vec3f_copy(g_render_data.eye_pos, eye);
 
     mat4x4_init(g_model_mat, 1.0f);
+
+    vec3f_t scale = { 0.01f, 0.01f, 0.01f };
+    mat4x4_scale(g_model_mat, scale);
 
     shader_info_t shaders[] = {
         { GL_VERTEX_SHADER, "shaders/default.vs.glsl" },
