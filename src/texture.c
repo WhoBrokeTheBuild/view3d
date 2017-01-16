@@ -79,7 +79,7 @@ bool image_load_tga(image_t *this, GLenum *format, const char *filename)
     buffer = (uint8_t *)malloc(buffer_len);
     CHECK_MEM(buffer);
 
-    read = fread(buffer, buffer_len - TGA_HEADER_LEN, 1, fp);
+    read = fread(buffer, buffer_len, 1, fp);
     CHECK(read > 0, "Failed to read file '%s'", filename);
 
     *format = (bytes_per_pixel == 3 ? GL_BGR : GL_BGRA);

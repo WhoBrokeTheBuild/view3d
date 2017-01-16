@@ -134,10 +134,10 @@ int main(int argc, char **argv)
         goto error;
     }
 
-    camera_init(&g_cam, START_WIDTH, START_HEIGHT, 0.01f, 100.0f, GLMM_RAD(45.0f));
+    camera_init(&g_cam, START_WIDTH, START_HEIGHT, 1.0f, 1000.0f, GLMM_RAD(45.0f));
 
-    vec3f_t eye = { 1.3f, 1.3f, 1.3f };
-    vec3f_t center = { 0.0f, 0.0f, 0.0f };
+    vec3f_t eye = { 150.0f, 150.0f, 150.0f };
+    vec3f_t center = { 0.0f, 100.0f, 0.0f };
     vec3f_t up = { 0.0f, 1.0f, 0.0f };
     camera_look_at(&g_cam, eye, center, up);
 
