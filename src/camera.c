@@ -1,18 +1,26 @@
 #include "camera.h"
 #include <math.h>
 
-void camera_init(camera_t *this, float width, float height, float vnear, float vfar, float fov)
+void camera_init(camera_t *this)
 {
     mat4x4_init(this->proj, 1.0f);
     mat4x4_init(this->view, 1.0f);
 
+    vec3f_init(this->_pos, 0.0f);
+    vec3f_init(this->_dir, 0.0f);
+    this->_dir[1] = 1.0f;
+    vec3f_init(this->_up, 0.0f);
+
+    this->_pitch = 0.0f;
+    this->_yaw = 0.0f;
+
+    this->_aspect = 0.0f;
+    this->_vnear = 1000.0f;
+    this->_vfar = 0.1f;
+    this->_fov = 45.0f;
+
     this->_invalid_proj = true;
     this->_invalid_view = true;
-    this->_aspect = width / height;
-    this->_vnear = vnear;
-    this->_vfar = vfar;
-    this->_fov = fov;
-    quat_init(this->_orient);
 }
 
 void camera_print(camera_t *this)
@@ -25,53 +33,29 @@ void camera_print(camera_t *this)
     mat4x4_print(this->view);
     printf("\n");
 
-    printf("Orient:\n");
-    quat_print(this->_orient);
+    printf("Pos:\n");
+    vec3f_print(this->_pos);
     printf("\n");
-}
 
-void camera_look_at(camera_t *this, const vec3f_t eye, const vec3f_t center, const vec3f_t up)
-{
-    glmm_look_at(this->view, eye, center, up);
-}
+    printf("Dir:\n");
+    vec3f_print(this->_dir);
+    printf("\n");
 
-void camera_update(camera_t *this)
-{
-    if (this->_invalid_view || this->_invalid_proj)
-    {
-        //LOG_INFO("Recalculating View Matrix");
-        this->_invalid_view = false;
-    }
-
-    if (this->_invalid_proj)
-    {
-        //LOG_INFO("Recalculating Projection Matrix");
-        glmm_perspective(this->proj, this->_aspect, this->_vnear, this->_vfar, this->_fov);
-        this->_invalid_proj = false;
-    }
-}
-
-void camera_rotate(camera_t *this, float angle, const vec3f_t axis)
-{
-    glmm_mat4x4_rotate(this->view, angle, axis);
-    this->_invalid_view = true;
-}
-
-void camera_translate(camera_t *this, const vec3f_t vec)
-{
-    glmm_mat4x4_translate(this->view, vec);
-    this->_invalid_view = true;
-}
-
-void camera_scale(camera_t *this, const vec3f_t scale)
-{
-    glmm_mat4x4_scale(this->view, scale);
-    this->_invalid_view = true;
+    printf("Up:\n");
+    vec3f_print(this->_up);
+    printf("\n");
 }
 
 void camera_set_aspect(camera_t *this, float width, float height)
 {
     this->_aspect = width / height;
+    this->_invalid_proj = true;
+}
+
+void camera_set_clip(camera_t *this, float vnear, float vfar)
+{
+    this->_vnear = vnear;
+    this->_vfar = vfar;
     this->_invalid_proj = true;
 }
 
@@ -81,9 +65,139 @@ void camera_set_fov(camera_t *this, float fov)
     this->_invalid_proj = true;
 }
 
-void camera_set_vnear_vfar(camera_t *this, float vnear, float vfar)
+void camera_set_pos(camera_t *this, vec3f_t pos)
 {
-    this->_vnear = vnear;
-    this->_vfar = vfar;
-    this->_invalid_proj = true;
+    vec3f_copy(this->_pos, pos);
+    this->_invalid_view = true;
+}
+
+void camera_set_dir(camera_t *this, vec3f_t dir)
+{
+    vec3f_copy(this->_dir, dir);
+    this->_invalid_view = true;
+}
+
+void camera_set_look_at(camera_t* this, vec3f_t look_at)
+{
+    vec3f_copy(this->_look_at, look_at);
+    this->_invalid_view = true;
+}
+
+void camera_set_up(camera_t *this, vec3f_t up)
+{
+    vec3f_copy(this->_up, up);
+    this->_invalid_view = true;
+}
+
+void camera_move(camera_t *this, camera_dir_t dir, float amount)
+{
+    vec3f_t tmp, left;
+
+    switch (dir)
+    {
+    case CAM_DIR_UP:
+
+        vec3f_mul_scalar(tmp, this->_up, amount);
+        vec3f_add(this->_pos_delta, this->_pos_delta, this->_up);
+
+        break;
+    case CAM_DIR_DOWN:
+
+        vec3f_mul_scalar(tmp, this->_up, amount);
+        vec3f_sub(this->_pos_delta, this->_pos_delta, this->_up);
+
+        break;
+    case CAM_DIR_LEFT:
+
+        vec3f_cross(left, this->_dir, this->_up);
+        vec3f_mul_scalar(left, left, amount);
+        vec3f_sub(this->_pos_delta, this->_pos_delta, left);
+
+        break;
+    case CAM_DIR_RIGHT:
+
+        vec3f_cross(left, this->_dir, this->_up);
+        vec3f_mul_scalar(left, left, amount);
+        vec3f_add(this->_pos_delta, this->_pos_delta, left);
+
+        break;
+    case CAM_DIR_FORWARD:
+
+        vec3f_mul_scalar(tmp, this->_dir, amount);
+        vec3f_add(this->_pos_delta, this->_pos_delta, this->_dir);
+
+        break;
+    case CAM_DIR_BACK:
+
+        vec3f_mul_scalar(tmp, this->_dir, amount);
+        vec3f_sub(this->_pos_delta, this->_pos_delta, this->_dir);
+
+        break;
+    }
+}
+
+void camera_change_pitch(camera_t* this, float angle)
+{
+    this->_pitch += angle;
+
+    if (this->_pitch > GLMM_2PI)
+    {
+        this->_pitch -= GLMM_2PI;
+    }
+}
+
+void camera_change_yaw(camera_t* this, float angle)
+{
+    this->_yaw += angle;
+
+    if ((this->_pitch > GLMM_PI * 0.5f && this->_pitch < GLMM_PI * 1.5f) || (this->_pitch < -GLMM_PI * 0.5f && this->_pitch > -GLMM_PI * 1.5f))
+    {
+        this->_yaw -= angle;
+    } else
+    {
+        this->_yaw += angle;
+    }
+
+    if (this->_yaw > GLMM_2PI)
+    {
+        this->_yaw -= GLMM_2PI;
+    }
+}
+
+void camera_update(camera_t *this)
+{
+    if (this->_invalid_view)
+    {
+        vec3f_t pitch_axis, look_at;
+        quat_t pitch_quat, yaw_quat, tmp;
+
+        vec3f_sub(this->_dir, this->_look_at, this->_pos);
+        vec3f_norm(this->_dir);
+
+        vec3f_cross(pitch_axis, this->_dir, this->_up);
+        quat_angle_axis(pitch_quat, this->_pitch, pitch_axis);
+        quat_angle_axis(yaw_quat, this->_yaw, this->_up);
+
+        quat_cross(tmp, pitch_quat, yaw_quat);
+        quat_norm(tmp);
+
+        quat_rotate_vec3f(tmp, this->_dir, this->_dir);
+
+        vec3f_add(this->_pos, this->_pos, this->_pos_delta);
+        vec3f_add(look_at, this->_pos, this->_dir);
+
+        glmm_look_at(this->view, this->_pos, look_at, this->_up);
+
+        this->_yaw *= 0.5f;
+        this->_pitch *= 0.5f;
+        vec3f_mul_scalar(this->_pos, this->_pos, 0.8f);
+
+        this->_invalid_view = false;
+    }
+
+    if (this->_invalid_proj)
+    {
+        glmm_perspective(this->proj, this->_aspect, this->_vnear, this->_vfar, this->_fov);
+        this->_invalid_proj = false;
+    }
 }

@@ -592,7 +592,7 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
 
     fclose(fp);
 
-    CHECK(strncmp(buffer, FBX_FILE_ID, strlen(FBX_FILE_ID)) == 0, "Invalid FBX Format");
+    CHECK(strncmp((const char *)buffer, FBX_FILE_ID, strlen(FBX_FILE_ID)) == 0, "Invalid FBX Format");
 
     memcpy(&version, buffer + 23, sizeof(unsigned int));
     LOG_INFO("FBX Version %d.%d", version / 1000, version % 1000);
@@ -607,7 +607,7 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
         root_node.nodes = realloc(root_node.nodes, root_node.num_nodes * sizeof(fbx_node_t));
 
         fbx_node_init(&root_node.nodes[i]);
-        offset = fbx_node_read(&root_node.nodes[i], buffer, offset, buffer_len);
+        offset = fbx_node_read(&root_node.nodes[i], (char *)buffer, offset, buffer_len);
         if (root_node.nodes[i].end_offset == 0)
         {
             fbx_node_term(&root_node.nodes[i]);

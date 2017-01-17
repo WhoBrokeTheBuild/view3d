@@ -23,6 +23,8 @@ model_t g_model;
 render_data_t g_render_data;
 mat4x4_t g_model_mat;
 
+bool g_rotating = true;
+
 void render_data_init_cb(void *in_data, GLuint shader)
 {
     render_data_t *data = (render_data_t *)in_data;
@@ -51,8 +53,11 @@ void render_cb()
 
     camera_update(&g_cam);
 
-    vec3f_t axis = { 0.0f, 1.0f, 0.0f };
-    mat4x4_rotate(g_model_mat, GLMM_RAD(1.0f), axis);
+    if (g_rotating)
+    {
+        vec3f_t axis = { 0.0f, 1.0f, 0.0f };
+        mat4x4_rotate(g_model_mat, GLMM_RAD(1.0f), axis);
+    }
 
     mat4x4_copy(g_render_data.model, g_model_mat);
     mat4x4_mul(g_render_data.mvp, g_cam.proj, g_cam.view);
@@ -66,6 +71,65 @@ void render_cb()
 void resize_cb(GLint width, GLint height)
 {
     camera_set_aspect(&g_cam, width, height);
+}
+
+void special_key_cb(int key, int x, int y)
+{
+    switch (key)
+    {
+    case GLUT_KEY_UP:
+
+        break;
+    case GLUT_KEY_DOWN:
+
+        break;
+    case GLUT_KEY_LEFT:
+
+        break;
+    case GLUT_KEY_RIGHT:
+
+        break;
+    }
+}
+
+void key_cb(unsigned char key, int x, int y)
+{
+    switch (key)
+    {
+    case '1':
+    {
+        GLint old_mode[2];
+        glGetIntegerv(GL_POLYGON_MODE, old_mode);
+        if (old_mode[1] == GL_LINE)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+        else
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
+    }
+    break;
+    case '2':
+    {
+        g_rotating = !g_rotating;
+    }
+    break;
+    case '-':
+    case '_':
+    {
+        vec3f_t scale_down = { 0.5f, 0.5f, 0.5f };
+        mat4x4_scale(g_model_mat, scale_down);
+    }
+    break;
+    case '+':
+    case '=':
+    {
+        vec3f_t scale_up = { 2.0f, 2.0f, 2.0f };
+        mat4x4_scale(g_model_mat, scale_up);
+    }
+    break;
+    }
 }
 
 void print_versions()
@@ -107,6 +171,8 @@ bool window_init(int argc, char **argv, int width, int height)
     glutDisplayFunc(&render_cb);
     glutIdleFunc(&render_cb);
     glutReshapeFunc(&resize_cb);
+    glutSpecialFunc(&special_key_cb);
+    glutKeyboardFunc(&key_cb);
 
     return true;
 
@@ -134,21 +200,25 @@ int main(int argc, char **argv)
         goto error;
     }
 
-    camera_init(&g_cam, START_WIDTH, START_HEIGHT, 0.001f, 1000.0f, GLMM_RAD(45.0f));
-
-    vec3f_t eye = { 1.5f, 1.5f, 1.5f };
-    vec3f_t center = { 0.0f, 0.2f, 0.0f };
+    vec3f_t eye = { 1.0f, 1.0f, 1.0f };
+    vec3f_t look_at = { 0.0f, 0.0f, 0.0f };
     vec3f_t up = { 0.0f, 1.0f, 0.0f };
-    camera_look_at(&g_cam, eye, center, up);
+
+    camera_init(&g_cam);
+    camera_set_aspect(&g_cam, START_WIDTH, START_HEIGHT);
+    camera_set_clip(&g_cam, 0.001f, 1000.0f);
+    camera_set_fov(&g_cam, GLMM_RAD(45.0f));
+
+    camera_set_pos(&g_cam, eye);
+    camera_set_look_at(&g_cam, look_at);
+    camera_set_up(&g_cam, up);
 
     camera_update(&g_cam);
+    camera_print(&g_cam);
 
     vec3f_copy(g_render_data.eye_pos, eye);
 
     mat4x4_init(g_model_mat, 1.0f);
-
-    vec3f_t scale = { 0.01f, 0.01f, 0.01f };
-    mat4x4_scale(g_model_mat, scale);
 
     shader_info_t shaders[] = {
         { GL_VERTEX_SHADER, "shaders/default.vs.glsl" },
