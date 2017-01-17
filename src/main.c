@@ -73,7 +73,6 @@ void resize_cb(GLint width, GLint height)
     camera_set_aspect(&g_cam, width, height);
 }
 
-<<<<<<< HEAD
 void special_key_cb(int key, int x, int y)
 {
     switch (key)
