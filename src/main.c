@@ -73,6 +73,7 @@ void resize_cb(GLint width, GLint height)
     camera_set_aspect(&g_cam, width, height);
 }
 
+<<<<<<< HEAD
 void special_key_cb(int key, int x, int y)
 {
     switch (key)
@@ -166,7 +167,6 @@ bool window_init(int argc, char **argv, int width, int height)
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     glutDisplayFunc(&render_cb);
     glutIdleFunc(&render_cb);
