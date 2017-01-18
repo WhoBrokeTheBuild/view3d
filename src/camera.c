@@ -8,8 +8,8 @@ void camera_init(camera_t *this)
 
     vec3f_init(this->_pos, 0.0f);
     vec3f_init(this->_dir, 0.0f);
-    this->_dir[1] = 1.0f;
     vec3f_init(this->_up, 0.0f);
+    this->_up[1] = 1.0f;
 
     this->_pitch = 0.0f;
     this->_yaw = 0.0f;
@@ -43,6 +43,10 @@ void camera_print(camera_t *this)
 
     printf("Up:\n");
     vec3f_print(this->_up);
+    printf("\n");
+
+    printf("Look At:\n");
+    vec3f_print(this->_look_at);
     printf("\n");
 }
 
@@ -98,13 +102,13 @@ void camera_move(camera_t *this, camera_dir_t dir, float amount)
     case CAM_DIR_UP:
 
         vec3f_mul_scalar(tmp, this->_up, amount);
-        vec3f_add(this->_pos_delta, this->_pos_delta, this->_up);
+        vec3f_add(this->_pos_delta, this->_pos_delta, tmp);
 
         break;
     case CAM_DIR_DOWN:
 
         vec3f_mul_scalar(tmp, this->_up, amount);
-        vec3f_sub(this->_pos_delta, this->_pos_delta, this->_up);
+        vec3f_sub(this->_pos_delta, this->_pos_delta, tmp);
 
         break;
     case CAM_DIR_LEFT:
@@ -124,13 +128,13 @@ void camera_move(camera_t *this, camera_dir_t dir, float amount)
     case CAM_DIR_FORWARD:
 
         vec3f_mul_scalar(tmp, this->_dir, amount);
-        vec3f_add(this->_pos_delta, this->_pos_delta, this->_dir);
+        vec3f_add(this->_pos_delta, this->_pos_delta, tmp);
 
         break;
     case CAM_DIR_BACK:
 
         vec3f_mul_scalar(tmp, this->_dir, amount);
-        vec3f_sub(this->_pos_delta, this->_pos_delta, this->_dir);
+        vec3f_sub(this->_pos_delta, this->_pos_delta, tmp);
 
         break;
     }
@@ -146,6 +150,8 @@ void camera_change_pitch(camera_t* this, float angle)
     {
         this->_pitch -= GLMM_2PI;
     }
+
+    this->_invalid_view = true;
 }
 
 void camera_change_yaw(camera_t* this, float angle)
@@ -164,13 +170,15 @@ void camera_change_yaw(camera_t* this, float angle)
     {
         this->_yaw -= GLMM_2PI;
     }
+
+    this->_invalid_view = true;
 }
 
 void camera_update(camera_t *this)
 {
     if (this->_invalid_view)
     {
-        vec3f_t pitch_axis, look_at;
+        vec3f_t pitch_axis;
         quat_t pitch_quat, yaw_quat, tmp;
 
         vec3f_sub(this->_dir, this->_look_at, this->_pos);
@@ -186,13 +194,13 @@ void camera_update(camera_t *this)
         vec3f_rotate_by_quat(this->_dir, this->_dir, tmp);
 
         vec3f_add(this->_pos, this->_pos, this->_pos_delta);
-        vec3f_add(look_at, this->_pos, this->_dir);
+        vec3f_add(this->_look_at, this->_pos, this->_dir);
 
-        glmm_look_at(this->view, this->_pos, look_at, this->_up);
+        glmm_look_at(this->view, this->_pos, this->_look_at, this->_up);
 
         this->_yaw *= 0.5f;
         this->_pitch *= 0.5f;
-        vec3f_mul_scalar(this->_pos_delta, this->_pos_delta, 0.0f); // Temporary
+        vec3f_init(this->_pos_delta, 0.0f);
 
         this->_invalid_view = false;
     }

@@ -23,7 +23,6 @@ void image_term(image_t *this)
 
 bool image_load_bmp(image_t *this, GLenum *format, const char *filename)
 {
-    int i;
     FILE *fp = NULL;
 
     CHECK(this, "this is NULL");
@@ -39,6 +38,8 @@ bool image_load_bmp(image_t *this, GLenum *format, const char *filename)
 error:
 
     fclose(fp);
+    
+    return false;
 }
 
 bool image_load_tga(image_t *this, GLenum *format, const char *filename)
@@ -255,7 +256,6 @@ GLuint load_texture(const char *filename)
 
     CHECK(filename, "filename is NULL");
 
-    LOG_INFO("Loading texture from '%s'", filename);
     image_init(&img);
 
     pch = strrchr(filename, '.');

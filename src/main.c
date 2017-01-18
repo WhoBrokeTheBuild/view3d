@@ -75,39 +75,75 @@ void resize_cb(GLint width, GLint height)
 
 void special_key_cb(int key, int x, int y)
 {
+    int mods;
+    float speed = 0.5f;
+    float turn = GLMM_RAD(10.0f);
+
+    mods = glutGetModifiers();
+
     switch (key)
     {
     case GLUT_KEY_UP:
 
-        camera_move(&g_cam, CAM_DIR_FORWARD, 1.0f);
+        if ((mods & GLUT_ACTIVE_SHIFT) == GLUT_ACTIVE_SHIFT)
+        {
+            camera_change_pitch(&g_cam, turn);
+        }
+        else
+        {
+            camera_move(&g_cam, CAM_DIR_FORWARD, speed);
+        }
 
         break;
     case GLUT_KEY_DOWN:
 
-        camera_move(&g_cam, CAM_DIR_BACK, 1.0f);
+        if ((mods & GLUT_ACTIVE_SHIFT) == GLUT_ACTIVE_SHIFT)
+        {
+            camera_change_pitch(&g_cam, -turn);
+        }
+        else
+        {
+            camera_move(&g_cam, CAM_DIR_BACK, speed);
+        }
 
         break;
     case GLUT_KEY_LEFT:
 
-        camera_move(&g_cam, CAM_DIR_LEFT, 1.0f);
+        if ((mods & GLUT_ACTIVE_SHIFT) == GLUT_ACTIVE_SHIFT)
+        {
+            camera_change_yaw(&g_cam, turn);
+        }
+        else
+        {
+            camera_move(&g_cam, CAM_DIR_LEFT, speed);
+        }
 
         break;
     case GLUT_KEY_RIGHT:
 
-        camera_move(&g_cam, CAM_DIR_RIGHT, 1.0f);
+        if ((mods & GLUT_ACTIVE_SHIFT) == GLUT_ACTIVE_SHIFT)
+        {
+            camera_change_yaw(&g_cam, -turn);
+        }
+        else
+        {
+            camera_move(&g_cam, CAM_DIR_RIGHT, speed);
+        }
 
         break;
     case GLUT_KEY_PAGE_UP:
 
-        camera_move(&g_cam, CAM_DIR_UP, 1.0f);
+        camera_move(&g_cam, CAM_DIR_UP, speed);
 
         break;
     case GLUT_KEY_PAGE_DOWN:
 
-        camera_move(&g_cam, CAM_DIR_DOWN, 1.0f);
+        camera_move(&g_cam, CAM_DIR_DOWN, speed);
 
         break;
     }
+
+    camera_update(&g_cam);
 }
 
 void key_cb(unsigned char key, int x, int y)
@@ -157,10 +193,10 @@ void print_versions()
     int glut_min = ((glut_ver - glut_pat) % 10000) / 100;
     int glut_maj = glut_ver / 10000;
 
-    printf("Running GLMM Version: %s\n", GLMM_VER_STRING);
-    printf("Running OpenGL Version: %s\n", glGetString(GL_VERSION));
-    printf("Running (Free)GLUT Version: %d.%d.%d\n", glut_maj, glut_min, glut_pat);
-    printf("Running GLEW Version: %d.%d.%d\n", GLEW_VERSION_MAJOR, GLEW_VERSION_MINOR, GLEW_VERSION_MICRO);
+    LOG_INFO("GLMM Version: %s", GLMM_VER_STRING);
+    LOG_INFO("OpenGL Version: %s", glGetString(GL_VERSION));
+    LOG_INFO("(Free)GLUT Version: %d.%d.%d", glut_maj, glut_min, glut_pat);
+    LOG_INFO("GLEW Version: %d.%d.%d", GLEW_VERSION_MAJOR, GLEW_VERSION_MINOR, GLEW_VERSION_MICRO);
 }
 
 bool window_init(int argc, char **argv, int width, int height)
@@ -184,6 +220,8 @@ bool window_init(int argc, char **argv, int width, int height)
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glutDisplayFunc(&render_cb);
     glutIdleFunc(&render_cb);
@@ -217,8 +255,8 @@ int main(int argc, char **argv)
         goto error;
     }
 
-    vec3f_t eye = { 1.0f, 1.0f, 1.0f };
-    vec3f_t look_at = { 0.0f, 0.0f, 0.0f };
+    vec3f_t eye = { 1.0f, 0.5f, 1.0f };
+    vec3f_t look_at = { 0.0f, 0.5f, 0.0f };
     vec3f_t up = { 0.0f, 1.0f, 0.0f };
 
     camera_init(&g_cam);
@@ -231,7 +269,6 @@ int main(int argc, char **argv)
     camera_set_up(&g_cam, up);
 
     camera_update(&g_cam);
-    camera_print(&g_cam);
 
     vec3f_copy(g_render_data.eye_pos, eye);
 

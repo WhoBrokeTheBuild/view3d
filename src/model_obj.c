@@ -372,6 +372,7 @@ bool raw_model_load_from_obj(raw_model_t *this, const char *filename, const char
 
             sscanf(line, "%*s %s" V3D_MAX_NAME_LEN_FMT "s", mesh_name);
             mesh->name = _strndup(mesh_name, V3D_MAX_NAME_LEN);
+            printf("Loading Object %s\n", mesh->name);
         }
         else if (strncmp(line, "mtllib", 6) == 0)
         {

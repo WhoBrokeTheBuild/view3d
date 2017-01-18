@@ -547,7 +547,7 @@ void model_draw(model_t *this)
         shader_data_bind(this->_shader_data);
     }
 
-    for (i = 0; i < this->count; ++i)
+    for (i = this->count - 1; i >= 0; --i)
     {
         mesh = &this->meshes[i];
         mat = mesh->mat;

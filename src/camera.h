@@ -22,7 +22,6 @@ typedef struct
     vec3f_t _pos;
     vec3f_t _dir;
     vec3f_t _up;
-
     vec3f_t _look_at;
     vec3f_t _pos_delta;
 
