@@ -79,14 +79,32 @@ void special_key_cb(int key, int x, int y)
     {
     case GLUT_KEY_UP:
 
+        camera_move(&g_cam, CAM_DIR_FORWARD, 1.0f);
+
         break;
     case GLUT_KEY_DOWN:
+
+        camera_move(&g_cam, CAM_DIR_BACK, 1.0f);
 
         break;
     case GLUT_KEY_LEFT:
 
+        camera_move(&g_cam, CAM_DIR_LEFT, 1.0f);
+
         break;
     case GLUT_KEY_RIGHT:
+
+        camera_move(&g_cam, CAM_DIR_RIGHT, 1.0f);
+
+        break;
+    case GLUT_KEY_PAGE_UP:
+
+        camera_move(&g_cam, CAM_DIR_UP, 1.0f);
+
+        break;
+    case GLUT_KEY_PAGE_DOWN:
+
+        camera_move(&g_cam, CAM_DIR_DOWN, 1.0f);
 
         break;
     }

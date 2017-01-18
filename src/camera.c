@@ -134,6 +134,8 @@ void camera_move(camera_t *this, camera_dir_t dir, float amount)
 
         break;
     }
+
+    this->_invalid_view = true;
 }
 
 void camera_change_pitch(camera_t* this, float angle)
@@ -181,7 +183,7 @@ void camera_update(camera_t *this)
         quat_cross(tmp, pitch_quat, yaw_quat);
         quat_norm(tmp);
 
-        quat_rotate_vec3f(tmp, this->_dir, this->_dir);
+        vec3f_rotate_by_quat(this->_dir, this->_dir, tmp);
 
         vec3f_add(this->_pos, this->_pos, this->_pos_delta);
         vec3f_add(look_at, this->_pos, this->_dir);
@@ -190,7 +192,7 @@ void camera_update(camera_t *this)
 
         this->_yaw *= 0.5f;
         this->_pitch *= 0.5f;
-        vec3f_mul_scalar(this->_pos, this->_pos, 0.8f);
+        vec3f_mul_scalar(this->_pos_delta, this->_pos_delta, 0.0f); // Temporary
 
         this->_invalid_view = false;
     }
