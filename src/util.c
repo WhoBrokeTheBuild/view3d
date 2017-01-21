@@ -24,9 +24,9 @@ void calc_normal(vec3f_t normal, vec3f_t a, vec3f_t b, vec3f_t c)
 {
     vec3f_t tmpa, tmpb;
 
-    vec3f_sub(tmpa, b, a);
-    vec3f_sub(tmpb, c, a);
-    vec3f_cross(normal, tmpa, tmpb);
+    vec3f_xsub(tmpa, b, a);
+    vec3f_xsub(tmpb, c, a);
+    vec3f_xcross(normal, tmpa, tmpb);
 }
 
 unsigned int strcntchr(const char *str, char c)

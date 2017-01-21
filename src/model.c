@@ -209,7 +209,7 @@ void raw_mesh_generate_sphere(raw_mesh_t *this, float radius, int slices, int st
         {
             // U texture coordinate.
             tmp2[0] = j / (float)slices;
-            float theta = tmp2[0] * GLMM_2PI;
+            float theta = tmp2[0] * GLMM_TWO_PI;
 
             tmp3[0] = cosf(theta) * sinf(phi);
             tmp3[1] = cosf(phi);
@@ -217,7 +217,7 @@ void raw_mesh_generate_sphere(raw_mesh_t *this, float radius, int slices, int st
 
             index = (i * slices) + j;
 
-            vec3f_mul_scalar(this->verts + index, tmp3, radius);
+            vec3f_xmuls(this->verts + index, tmp3, radius);
             vec3f_copy(this->norms + index, tmp3);
             vec2f_copy(this->txcds + index, tmp2);
         }

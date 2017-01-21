@@ -60,8 +60,8 @@ void render_cb()
     }
 
     mat4x4_copy(g_render_data.model, g_model_mat);
-    mat4x4_mul(g_render_data.mvp, g_cam.proj, g_cam.view);
-    mat4x4_mul(g_render_data.mvp, g_render_data.mvp, g_model_mat);
+    mat4x4_xmul(g_render_data.mvp, g_cam.proj, g_cam.view);
+    mat4x4_mul(g_render_data.mvp, g_model_mat);
 
     model_draw(&g_model);
 
