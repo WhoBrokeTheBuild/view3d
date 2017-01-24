@@ -255,25 +255,6 @@ int main(int argc, char **argv)
         goto error;
     }
 
-    vec3f_t eye = { 1.0f, 0.5f, 1.0f };
-    vec3f_t look_at = { 0.0f, 0.5f, 0.0f };
-    vec3f_t up = { 0.0f, 1.0f, 0.0f };
-
-    camera_init(&g_cam);
-    camera_set_aspect(&g_cam, START_WIDTH, START_HEIGHT);
-    camera_set_clip(&g_cam, 0.001f, 1000.0f);
-    camera_set_fov(&g_cam, GLMM_RAD(45.0f));
-
-    camera_set_pos(&g_cam, eye);
-    camera_set_look_at(&g_cam, look_at);
-    camera_set_up(&g_cam, up);
-
-    camera_update(&g_cam);
-
-    vec3f_copy(g_render_data.eye_pos, eye);
-
-    mat4x4_init(g_model_mat, 1.0f);
-
     shader_info_t shaders[] = {
         { GL_VERTEX_SHADER, "shaders/default.vs.glsl" },
         { GL_FRAGMENT_SHADER, "shaders/default.fs.glsl" },
@@ -290,6 +271,33 @@ int main(int argc, char **argv)
 
     bool ret = model_load_from_file(&g_model, argv[1], NULL, def_shader, &data);
     CHECK(ret, "Failed to load model");
+
+
+    vec3f_t up = { 0.0f, 1.0f, 0.0f };
+    vec3f_t eye;
+    vec3f_t look_at;
+
+    vec3f_copy(eye, g_model.max);
+    vec3f_muls(eye, 2.0f);
+    vec3f_xadd(look_at, g_model.min, g_model.max);
+    vec3f_muls(look_at, 0.5f);
+
+    camera_init(&g_cam);
+    camera_set_aspect(&g_cam, START_WIDTH, START_HEIGHT);
+    camera_set_clip(&g_cam, 0.001f, 1000.0f);
+    camera_set_fov(&g_cam, GLMM_RAD(45.0f));
+
+    camera_set_pos(&g_cam, eye);
+    camera_set_look_at(&g_cam, look_at);
+    camera_set_up(&g_cam, up);
+
+    camera_update(&g_cam);
+    camera_print(&g_cam);
+
+    vec3f_copy(g_render_data.eye_pos, eye);
+    vec3f_copy(g_render_data.light_pos, eye);
+
+    mat4x4_init(g_model_mat, 1.0f);
 
     glutMainLoop();
 

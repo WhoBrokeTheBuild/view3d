@@ -38,7 +38,7 @@ bool image_load_bmp(image_t *this, GLenum *format, const char *filename)
 error:
 
     fclose(fp);
-    
+
     return false;
 }
 
@@ -144,7 +144,7 @@ bool image_load_png(image_t *this, GLenum *format, const char *filename)
     png_infop info_ptr = NULL;
     png_infop end_info = NULL;
     int bit_depth = 0;
-    int num_passes = 0;
+    //int num_passes = 0;
     int rowbytes = 0;
     png_bytep *row_pointers = NULL;
 
@@ -195,7 +195,7 @@ bool image_load_png(image_t *this, GLenum *format, const char *filename)
     //    SENTINEL("Invalid PNG format for '%s'", filename);
     //}
 
-    num_passes = png_set_interlace_handling(png_ptr);
+    //num_passes = png_set_interlace_handling(png_ptr);
     png_read_update_info(png_ptr, info_ptr);
 
     CHECK(!setjmp(png_jmpbuf(png_ptr)), "Error during read_image");

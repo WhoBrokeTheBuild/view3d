@@ -2,6 +2,7 @@
 
 FILE ?= assets/cube.obj
 PREFIX ?= /usr/local
+BUILD ?= debug
 
 # Directory constants
 
@@ -13,7 +14,7 @@ DEP_DIR = .dep
 
 # Additional build configuration
 
-CFLAGS  += -g -Wall -std=c11 -I$(SRC_DIR)
+CFLAGS  += -Wall -std=c11 -I$(SRC_DIR)
 LDFLAGS +=
 LDLIBS  += -lm -lz -lGL -lGLEW -lglut -lpng
 
@@ -23,6 +24,15 @@ CFLAGS  += -I$(GLMM_DIR)/include
 
 endif
 
+ifeq ($(BUILD),debug)
+
+CFLAGS += -O0 -g -DDEBUG
+
+else # release
+
+CFLAGS += -O2 -s -DRELEASE
+
+endif
 
 # Dynamically get the sources/objects/tests
 
@@ -66,8 +76,16 @@ clean_target:
 # Install to system
 
 install: all
-	install -d $(DESTDIR)/$(PREFIX)/bin/
-	install $(TARGET) $(DESTDIR)/$(PREFIX)/bin/
+	mkdir -p $(PREFIX)/bin
+	mkdir -p $(PREFIX)/share/view3d/bin
+	cp -rf share/ $(PREFIX)/share/view3d/
+	cp -f $(TARGET) $(PREFIX)/share/view3d/bin/
+	cp -rf shaders/ $(PREFIX)/share/view3d/
+	cp -f v3d.sh $(PREFIX)/share/view3d/
+	@-unlink $(PREFIX)/bin/v3d
+	ln -s $(PREFIX)/share/view3d/v3d.sh $(PREFIX)/bin/v3d
+	@-unlink $(PREFIX)/share/applications/view3d.desktop
+	ln -s $(PREFIX)/share/view3d/view3d.desktop $(PREFIX)/share/applications/view3d.desktop
 
 # Format code
 

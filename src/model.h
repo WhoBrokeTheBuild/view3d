@@ -97,6 +97,7 @@ typedef struct model
     mesh_t *meshes;
     GLuint _shader_id;
     shader_data_t *_shader_data;
+    vec3f_t min, max;
 
     GLuint mtl_shininess_loc;
     GLuint mtl_ambient_loc;

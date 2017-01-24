@@ -25,7 +25,7 @@ void raw_material_init(raw_material_t *this)
     this->name = NULL;
     vec4f_init(this->ambient, 0.0f);
     this->ambient[3] = 1.0f;
-    vec4f_init(this->diffuse, 0.0f);
+    vec4f_init(this->diffuse, 0.5f);
     this->diffuse[3] = 1.0f;
     vec4f_init(this->specular, 0.0f);
     this->specular[3] = 1.0f;
@@ -48,7 +48,7 @@ void raw_material_term(raw_material_t *this)
     this->name = NULL;
     vec4f_init(this->ambient, 0.0f);
     this->ambient[3] = 1.0f;
-    vec4f_init(this->diffuse, 0.0f);
+    vec4f_init(this->diffuse, 0.5f);
     this->diffuse[3] = 1.0f;
     vec4f_init(this->specular, 0.0f);
     this->specular[3] = 1.0f;
@@ -495,7 +495,7 @@ error:
 
 bool model_load_from_raw(model_t *this, raw_model_t *raw, GLuint shader_id, shader_data_t *shader_data)
 {
-    int i;
+    int i, j, k;
 
     CHECK(this, "this is NULL");
     CHECK(raw, "raw is NULL");
@@ -506,6 +506,26 @@ bool model_load_from_raw(model_t *this, raw_model_t *raw, GLuint shader_id, shad
         this->_shader_data = malloc(sizeof(shader_data_t));
         memcpy(this->_shader_data, shader_data, sizeof(shader_data_t));
         shader_data_init(this->_shader_data, this->_shader_id);
+    }
+
+    vec3f_init(this->min, 0.0f);
+    vec3f_init(this->max, 0.0f);
+    for (i = 0; i < raw->count; ++i)
+    {
+        for (j = 0; j < raw->meshes[i].count; ++j)
+        {
+            for (k = 0; k < 3; ++k)
+            {
+                if (raw->meshes[i].verts[(j * 3) + k] < this->min[k])
+                {
+                    this->min[k] = raw->meshes[i].verts[(j * 3) + k];
+                }
+                if (raw->meshes[i].verts[(j * 3) + k] > this->max[k])
+                {
+                    this->max[k] = raw->meshes[i].verts[(j * 3) + k];
+                }
+            }
+        }
     }
 
     this->count = raw->count;

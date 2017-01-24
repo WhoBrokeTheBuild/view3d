@@ -574,8 +574,8 @@ bool raw_model_load_from_fbx(raw_model_t *this, const char *filename, const char
     int norms_loaded = 0;
     int txcds_loaded = 0;
     fbx_node_t *obj_node = NULL, *geom_node = NULL,
-               *vert_node = NULL, *face_node = NULL,
-               *norm_node = NULL;
+               *vert_node = NULL, *face_node = NULL;
+               //*norm_node = NULL;
     fbx_prop_t *face = NULL, *vert = NULL;
     raw_mesh_t *mesh = NULL;
     int geom_index = 0;
