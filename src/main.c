@@ -194,6 +194,7 @@ void print_versions()
     int glut_maj = glut_ver / 10000;
 
     LOG_INFO("GLMM Version: %s", GLMM_VER_STRING);
+    LOG_INFO("LibMDL Version: %s", MDL_VER_STRING);
     LOG_INFO("OpenGL Version: %s", glGetString(GL_VERSION));
     LOG_INFO("(Free)GLUT Version: %d.%d.%d", glut_maj, glut_min, glut_pat);
     LOG_INFO("GLEW Version: %d.%d.%d", GLEW_VERSION_MAJOR, GLEW_VERSION_MINOR, GLEW_VERSION_MICRO);
@@ -271,7 +272,6 @@ int main(int argc, char **argv)
 
     bool ret = model_load_from_file(&g_model, argv[1], NULL, def_shader, &data);
     CHECK(ret, "Failed to load model");
-
 
     vec3f_t up = { 0.0f, 1.0f, 0.0f };
     vec3f_t eye;

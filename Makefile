@@ -16,22 +16,21 @@ DEP_DIR = .dep
 
 CFLAGS  += -Wall -std=c11 -I$(SRC_DIR)
 LDFLAGS +=
-LDLIBS  += -lm -lz -lGL -lGLEW -lglut -lpng
+LDLIBS  += -lm -lz -lGL -lGLEW -lglut -lpng -lmdl
 
 ifdef GLMM_DIR
-
 CFLAGS  += -I$(GLMM_DIR)/include
+endif
 
+ifdef LIBMDL_DIR
+CFLAGS  += -I$(LIBMDL_DIR)/include
+LDFLAGS += -L$(LIBMDL_DIR)
 endif
 
 ifeq ($(BUILD),debug)
-
 CFLAGS += -O0 -g -DDEBUG
-
 else # release
-
 CFLAGS += -O2 -s -DRELEASE
-
 endif
 
 # Dynamically get the sources/objects/tests
@@ -94,16 +93,19 @@ format:
 
 # Run the program normally
 
+run: export LD_LIBRARY_PATH=/usr/local/lib64
 run:
 	$(TARGET) $(FILE)
 
 # Run the program through valgrind
 
+valgrind: export LD_LIBRARY_PATH=/usr/local/lib64
 valgrind:
 	valgrind $(TARGET) $(FILE)
 
 # Run the program through gdb
 
+gdb: export LD_LIBRARY_PATH=/usr/local/lib64
 gdb:
 	gdb --args $(TARGET) $(FILE)
 
