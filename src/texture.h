@@ -7,7 +7,6 @@ typedef struct image
 {
     int width;
     int height;
-    int color_type;
     unsigned char *data;
 } image_t;
 

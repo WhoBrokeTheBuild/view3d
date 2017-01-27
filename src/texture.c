@@ -8,7 +8,6 @@ void image_init(image_t *this)
 {
     this->width = 0;
     this->height = 0;
-    this->color_type = 0;
     this->data = NULL;
 }
 
@@ -16,7 +15,6 @@ void image_term(image_t *this)
 {
     this->width = 0;
     this->height = 0;
-    this->color_type = 0;
     free(this->data);
     this->data = NULL;
 }
@@ -144,12 +142,12 @@ bool image_load_png(image_t *this, GLenum *format, const char *filename)
     png_infop info_ptr = NULL;
     png_infop end_info = NULL;
     int bit_depth = 0;
-    //int num_passes = 0;
+    int color_type = 0;
     int rowbytes = 0;
     png_bytep *row_pointers = NULL;
 
-    CHECK(this, "this is NULL");
-    CHECK(filename, "filename is NULL");
+    assert(this);
+    assert(filename);
 
     fp = fopen(filename, "rb");
     CHECK(fp, "Failed to open file '%s'", filename);
@@ -175,25 +173,21 @@ bool image_load_png(image_t *this, GLenum *format, const char *filename)
 
     this->width = png_get_image_width(png_ptr, info_ptr);
     this->height = png_get_image_height(png_ptr, info_ptr);
-    this->color_type = png_get_color_type(png_ptr, info_ptr);
-
+    color_type = png_get_color_type(png_ptr, info_ptr);
     bit_depth = png_get_bit_depth(png_ptr, info_ptr);
-    CHECK(bit_depth == 8, "Invalid PNG format for '%s'", filename);
 
-    *format = GL_RGB;
-
-    //if (this->bit_depth == 24)
-    //{
-    //    *format = GL_RGB;
-    //}
-    //else if (this->bit_depth == 32)
-    //{
-    //    *format = GL_RGBA;
-    //}
-    //else
-    //{
-    //    SENTINEL("Invalid PNG format for '%s'", filename);
-    //}
+    if (color_type == PNG_COLOR_TYPE_RGB)
+    {
+        *format = GL_RGB;
+    }
+    else if (color_type == PNG_COLOR_TYPE_RGBA)
+    {
+        *format = GL_RGBA;
+    }
+    else
+    {
+        SENTINEL("Invalid PNG format for '%s'", filename);
+    }
 
     //num_passes = png_set_interlace_handling(png_ptr);
     png_read_update_info(png_ptr, info_ptr);
@@ -254,7 +248,7 @@ GLuint load_texture(const char *filename)
     GLuint texture = 0;
     GLenum format = GL_RGB;
 
-    CHECK(filename, "filename is NULL");
+    assert(filename != NULL);
 
     image_init(&img);
 

@@ -284,7 +284,7 @@ int main(int argc, char **argv)
 
     camera_init(&g_cam);
     camera_set_aspect(&g_cam, START_WIDTH, START_HEIGHT);
-    camera_set_clip(&g_cam, 0.001f, 1000.0f);
+    camera_set_clip(&g_cam, 0.001f, 10000.0f);
     camera_set_fov(&g_cam, GLMM_RAD(45.0f));
 
     camera_set_pos(&g_cam, eye);
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
     camera_set_up(&g_cam, up);
 
     camera_update(&g_cam);
-    camera_print(&g_cam);
+    //camera_print(&g_cam);
 
     vec3f_copy(g_render_data.eye_pos, eye);
     vec3f_copy(g_render_data.light_pos, eye);

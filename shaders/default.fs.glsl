@@ -24,9 +24,9 @@ void main()
     vec4 ambient_amount = vec4(0.7f, 0.7f, 0.7f, 1.0f);
     vec4 light_color = vec4(0.6f, 0.6f, 0.6f, 1.0f);
 
-    vec4 mtl_ambient = texture(u_tex_ambient, _texcoord) + u_mtl_ambient;
-    vec4 mtl_diffuse = texture(u_tex_diffuse, _texcoord) + u_mtl_diffuse;
-    vec4 mtl_specular = texture(u_tex_specular, _texcoord) + u_mtl_specular;
+    vec4 mtl_ambient = vec4(0.5f, 0.5f, 0.5f, 1.0f); //texture(u_tex_ambient, _texcoord) + u_mtl_ambient;
+    vec4 mtl_diffuse = texture(u_tex_diffuse, _texcoord); // + u_mtl_diffuse;
+    vec4 mtl_specular = vec4(0.0f, 0.0f, 0.0f, 1.0f);  texture(u_tex_specular, _texcoord); // + u_mtl_specular;
     vec4 normal = _normal;
     if (textureSize(u_tex_bump, 0).x > 0)
     {
@@ -46,5 +46,6 @@ void main()
     float RdotV = max(dot(R, V), 0);
     vec4 specular = pow(RdotV, mtl_shininess) * light_color;
 
-    o_color = (ambient + diffuse + specular) * mtl_diffuse;
+    //o_color = (ambient + diffuse + specular) * mtl_diffuse;
+    o_color = mtl_diffuse;
 }

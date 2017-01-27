@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #define CLEAN_ERRNO() (errno == 0 ? "None" : strerror(errno))
 
