@@ -1,6 +1,6 @@
 #include "util.h"
 
-#include <debug.h>
+#include "debug.h"
 
 long int fsize(FILE *fp)
 {

@@ -11,13 +11,13 @@
 #if defined(DEBUG) || defined(_DEBUG)
 
 #  define DEBUG_INFO(M, ...) \
-          fprintf(stdout, "[INFO](%s:%d) " M "\n", __FILE__, __LINE__, ##__VA_ARGS__);
+          do { fprintf(stdout, "[INFO](%s:%d) " M "\n", __FILE__, __LINE__, ##__VA_ARGS__); } while (false)
 
 #  define DEBUG_WARN(M, ...) \
-          fprintf(stderr, "[WARN](%s:%d) " M "\n", __FILE__, __LINE__, ##__VA_ARGS__);
+          do { fprintf(stderr, "[WARN](%s:%d) " M "\n", __FILE__, __LINE__, ##__VA_ARGS__); } while (false)
 
 #  define DEBUG_ERROR(M, ...) \
-          fprintf(stderr, "[ERROR](%s:%d) " M "\n", __FILE__, __LINE__, ##__VA_ARGS__);
+          do { fprintf(stderr, "[ERROR](%s:%d) " M "\n", __FILE__, __LINE__, ##__VA_ARGS__); } while (false)
 
 #else
 #  define DEBUG_INFO(M, ...) do { } while(false)

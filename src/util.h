@@ -2,7 +2,7 @@
 #define VIEW3D_UTIL_H
 
 #include <string.h>
-#include <view3d.h>
+#include "view3d.h"
 
 long int fsize(FILE *fp);
 

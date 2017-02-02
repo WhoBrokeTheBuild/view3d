@@ -1,7 +1,7 @@
 #ifndef VIEW3D_TEXTURE_H
 #define VIEW3D_TEXTURE_H
 
-#include <view3d.h>
+#include "view3d.h"
 
 typedef struct image
 {

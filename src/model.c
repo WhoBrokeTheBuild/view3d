@@ -128,6 +128,7 @@ bool mesh_load_from_mdl(mesh_t *this, mdl_mesh_t *mdl)
     ret = material_load_from_mdl(this->mat, mdl->mat);
     if (!ret)
     {
+      DEBUG_ERROR("Failed to load material from mdl struct");
       return false;
     }
   }
@@ -194,8 +195,7 @@ void model_term(model_t *this)
   this->_shader_id = 0;
 }
 
-bool model_load_from_file(model_t *this, const char *filename, const char *name,
-                          GLuint shader_id, shader_data_t *shader_data)
+bool model_load_from_file(model_t *this, const char *filename, const char *name, GLuint shader_id, shader_data_t *shader_data)
 {
   assert(this);
   assert(filename);
@@ -212,8 +212,7 @@ bool model_load_from_file(model_t *this, const char *filename, const char *name,
   return ret;
 }
 
-bool model_load_from_mdl(model_t *this, mdl_model_t *mdl, GLuint shader_id,
-                         shader_data_t *shader_data)
+bool model_load_from_mdl(model_t *this, mdl_model_t *mdl, GLuint shader_id, shader_data_t *shader_data)
 {
   assert(this);
   assert(mdl);
@@ -253,7 +252,7 @@ bool model_load_from_mdl(model_t *this, mdl_model_t *mdl, GLuint shader_id,
   for (i = 0; i < mdl->count; ++i)
   {
     mesh_init(&this->meshes[i]);
-    if (mesh_load_from_mdl(&this->meshes[i], &mdl->meshes[i]))
+    if (!mesh_load_from_mdl(&this->meshes[i], &mdl->meshes[i]))
     {
       DEBUG_ERROR("Failed to load mesh from mdl struct");
       goto error;

@@ -29,7 +29,7 @@ void main()
     vec4 light_color = vec4(0.6f, 0.6f, 0.6f, 1.0f);
 
     vec4 mtl_ambient = vec4(0.5f, 0.5f, 0.5f, 1.0f); //texture(u_tex_ambient, _texcoord) + u_mtl_ambient;
-    vec4 mtl_diffuse = texture(u_tex_diffuse, _texcoord); // + u_mtl_diffuse;
+    vec4 mtl_diffuse = (u_has_tex_diffuse ? texture(u_tex_diffuse, _texcoord) : u_mtl_diffuse);
     vec4 mtl_specular = vec4(0.0f, 0.0f, 0.0f, 1.0f);  texture(u_tex_specular, _texcoord); // + u_mtl_specular;
     vec4 normal = _normal;
     if (u_has_tex_bump)

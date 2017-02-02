@@ -1,5 +1,5 @@
 #include "texture.h"
-#include <util.h>
+#include "util.h"
 
 #define PNG_DEBUG 3
 #include <png.h>
@@ -310,8 +310,6 @@ image_loader_t g_image_loaders[] = {{".bmp", &image_load_bmp},
 
 GLuint load_texture(const char *filename)
 {
-  return 0;
-
   int i;
   image_t img;
   bool ret = false;

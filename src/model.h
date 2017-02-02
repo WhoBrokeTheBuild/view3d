@@ -2,10 +2,10 @@
 #define VIEW3D_MODEL_H
 
 #include <mdl/mdl.h>
-#include <shaders.h>
-#include <texture.h>
-#include <util.h>
-#include <view3d.h>
+#include "shaders.h"
+#include "texture.h"
+#include "util.h"
+#include "view3d.h"
 
 #define MODEL_ATTRID_VERTS 0
 #define MODEL_ATTRID_NORMS 1

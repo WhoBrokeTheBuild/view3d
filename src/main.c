@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <time.h>
-#include <view3d.h>
 
+#include "view3d.h"
 #include "camera.h"
 #include "model.h"
 #include "shaders.h"
