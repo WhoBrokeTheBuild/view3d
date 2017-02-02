@@ -36,6 +36,7 @@ endif
 # Dynamically get the sources/objects/tests
 
 SOURCES = $(wildcard $(SRC_DIR)/**/*.c $(SRC_DIR)/*.c)
+HEADERS = $(wildcard $(SRC_DIR)/**/*.h $(SRC_DIR)/*.h)
 OBJECTS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SOURCES))
 TESTS   = $(patsubst %.c,%,$(wildcard $(TESTS_DIR)/*_test.c))
 TARGET  = $(BUILD_DIR)/v3d
@@ -78,6 +79,7 @@ install: all
 	mkdir -p $(PREFIX)/bin
 	mkdir -p $(PREFIX)/share/view3d/bin
 	cp -rf share/ $(PREFIX)/share/view3d/
+	strip $(TARGET)
 	cp -f $(TARGET) $(PREFIX)/share/view3d/bin/
 	cp -rf shaders/ $(PREFIX)/share/view3d/
 	cp -f v3d.sh $(PREFIX)/share/view3d/

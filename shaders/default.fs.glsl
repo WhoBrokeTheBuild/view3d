@@ -11,6 +11,10 @@ uniform float u_mtl_shininess;
 uniform vec4 u_mtl_ambient;
 uniform vec4 u_mtl_diffuse;
 uniform vec4 u_mtl_specular;
+uniform bool u_has_tex_ambient;
+uniform bool u_has_tex_diffuse;
+uniform bool u_has_tex_specular;
+uniform bool u_has_tex_bump;
 uniform sampler2D u_tex_ambient;
 uniform sampler2D u_tex_diffuse;
 uniform sampler2D u_tex_specular;
@@ -28,7 +32,7 @@ void main()
     vec4 mtl_diffuse = texture(u_tex_diffuse, _texcoord); // + u_mtl_diffuse;
     vec4 mtl_specular = vec4(0.0f, 0.0f, 0.0f, 1.0f);  texture(u_tex_specular, _texcoord); // + u_mtl_specular;
     vec4 normal = _normal;
-    if (textureSize(u_tex_bump, 0).x > 0)
+    if (u_has_tex_bump)
     {
         normal = 2.0f * texture(u_tex_bump, _texcoord) - 1.0f;
     }

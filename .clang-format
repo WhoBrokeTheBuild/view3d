@@ -1,8 +1,8 @@
-Language: Cpp
-BasedOnStyle: WebKit
-Standard: Cpp11
-BreakBeforeBraces: Allman
-IndentWidth: 4
 UseTab: Never
+IndentWidth: 2
+BreakBeforeBraces: Allman
+AllowShortIfStatementsOnASingleLine: false
+IndentCaseLabels: false
+ColumnLimit: 0
 PointerAlignment: Right
 PointerBindsToType: false

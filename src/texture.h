@@ -5,9 +5,9 @@
 
 typedef struct image
 {
-    int width;
-    int height;
-    unsigned char *data;
+  int width;
+  int height;
+  unsigned char *data;
 } image_t;
 
 void image_init(image_t *this);
